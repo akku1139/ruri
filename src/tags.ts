@@ -4,6 +4,6 @@ type TagNameElementMap = {
   [K in keyof HTMLElementTagNameMap]: ReturnType<typeof tagFactory<K>>;
 }
 
-export const tags: TagNameElementMap = new Proxy({} as TagNameElementMap, {
+export const tags: TagNameElementMap = new Proxy(Object.create(null), {
   get: (_target, prop: keyof HTMLElementTagNameMap) => tagFactory(prop)
 })
