@@ -1,7 +1,7 @@
 import { tagFactory } from "./tagFactory.ts"
 
 type TagNameElementMap = {
-  [K in keyof HTMLElementTagNameMap]: HTMLElementTagNameMap[K];
+  [K in keyof HTMLElementTagNameMap]: ReturnType<typeof tagFactory<K>>;
 }
 
 export const tags: TagNameElementMap = new Proxy({} as TagNameElementMap, {
