@@ -19,39 +19,4 @@ export const signal = <T>(
       subscribers.push(fn)
     }
   }
-
-  /*
-  const count = signal<number>(0)
-  count.value
-  count()
-  */
-
-  // return new Proxy<Signal<T>>(Object.create(null), {
-  //   apply: (_target, _thisArg, _args) => data,
-  //   get: (_target, prop: keyof Signal<T>) => {
-  //     switch(prop) {
-  //       case "value":
-  //         return data
-  //       case "subscribe":
-  //         return (subscriber: Function) => {
-  //           subscribers.push(subscriber)
-  //         }
-  //     }
-  //   },
-  //   set: (_target, prop: keyof Signal<T>, newValue) => {
-  //     if(prop === "value") {
-  //       if(!equals(data, newValue)) {
-  //         data = newValue
-  //         for(const s of subscribers) {
-  //           s()
-  //         }
-  //       }
-  //       return true
-  //     }
-  //     return false
-  //   }
-  // })
 }
-
-const s = signal<number>(0)
-s()
