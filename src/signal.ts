@@ -1,10 +1,10 @@
-export type Subscriber = () => void
+import type { Signal, Subscriber } from "./types.ts"
 
 const gSubscribers: Array<Subscriber> = []
 
 export const signal = <T>(
   init: T, equals: (before: T, after: T) => boolean = (b, a) => b === a
-): { value: T, subscribe: (fn: Subscriber) => void } => {
+): Signal<T> => {
   let data: T = init
   const subscribers: Array<Function> = []
 
