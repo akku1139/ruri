@@ -1,5 +1,19 @@
 import type { Children } from "./types.ts"
 
+export const tagFactory = <T extends keyof HTMLElementTagNameMap>(tagName: T) =>
+  (props: Record<string, string>, ...children: Children): HTMLElementTagNameMap[T] => {
+    const element = document.createElement<typeof tagName>(tagName)
+
+    Object.entries(props).forEach(([name, value]) => element.setAttribute(name, value))
+
+    for(const child of children) {
+      element.append(child)
+    }
+
+    return element
+  }
+
+/*
 type Tag<T extends keyof HTMLElementTagNameMap> = {
   (props: Record<string, string>, ...children: Children): HTMLElementTagNameMap[T]
   (...children: Children): HTMLElementTagNameMap[T]
@@ -25,6 +39,7 @@ export const tagFactory = <T extends keyof HTMLElementTagNameMap>(tagName: T): T
 
     return element
   }
+*/
 
 /*
 import type { Children } from "./types.ts"
