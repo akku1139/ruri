@@ -22,7 +22,9 @@ export const signal = <T>(
       }
       data = newValue
       for(const s of subscribers) {
-        s()
+        try{
+          s()
+        } catch {}
       }
     },
     subscribe: (fn) => {
