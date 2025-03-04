@@ -1,2 +1,2 @@
-export type Child = HTMLElement
-export type Children = Array<HTMLElement>
+export type Child = HTMLElement | string
+export type Children = Array<Child>

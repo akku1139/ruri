@@ -11,7 +11,7 @@ export const tagFactory = <T extends keyof HTMLElementTagNameMap>(tagName: T): T
 
     let children: Children = []
 
-    if(!(args[0] instanceof HTMLElement)) {
+    if(typeof args[0] === "object" && !(args[0] instanceof HTMLElement)) {
       const props = args[0]
       Object.entries(props).forEach(([name, value]) => element.setAttribute(name, value))
       children = args.slice(1) as Children
@@ -20,7 +20,7 @@ export const tagFactory = <T extends keyof HTMLElementTagNameMap>(tagName: T): T
     }
 
     for(const child of children) {
-      element.appendChild(child)
+      element.append(child)
     }
 
     return element
