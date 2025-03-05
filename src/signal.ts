@@ -39,6 +39,7 @@ export class Signal<T = unknown> {
 }
 
 export const effect = (fn: Subscriber): void => {
+  // FIXME: Multiple duplicate effects (if multiple signals are dependent)
   gSubscribers.push(fn)
   fn()
   gSubscribers.pop()
