@@ -42,6 +42,10 @@ export class Signal<T = any> {
   unsubscribe(fn: Subscriber): boolean {
     return this.#subscribers.delete(fn)
   }
+
+  dispose(): void {
+    this.#subscribers.clear()
+  }
 }
 
 class ReactiveEffect {
@@ -63,9 +67,9 @@ class ReactiveEffect {
   }
 
   cleanup() {
-    this.deps.forEach((dep) => {
+    for(const dep of this.deps) {
       dep.unsubscribe(this.subscriber)
-    })
+    }
     this.deps.clear()
   }
 }
@@ -77,8 +81,8 @@ export const effect = (fn: Subscriber): (() => void) => {
 }
 
 export const derived = <T>(fn: () => T): Signal<T> => {
-  const s = new Signal(fn())
-  const cleanup = effect(() => {
+  const s = new Signal(void 0 as T)
+  effect(() => {
     s.value = fn()
   })
   return s
