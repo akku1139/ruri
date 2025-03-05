@@ -1,6 +1,6 @@
 import type { Equals, Subscriber } from "./types.ts"
 
-const gSubscribers: Array<Subscriber> = []
+const gSubscribers: Array<Subscriber|null> = []
 
 export class Signal<T = unknown> {
   #data: T
@@ -42,4 +42,12 @@ export const effect = (fn: Subscriber): void => {
   gSubscribers.push(fn)
   fn()
   gSubscribers.pop()
+}
+
+export const derived = <T>(fn: () => T): Signal<T> => {
+  const s = new Signal(fn())
+  effect(() => {
+    s.value = fn()
+  })
+  return s
 }
