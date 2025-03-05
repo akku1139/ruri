@@ -4,12 +4,12 @@ const gSubscribers: Array<Subscriber|null> = []
 
 export class Signal<T = unknown> {
   #data: T
-  #subscribers: Array<Subscriber>
+  #subscribers: Set<Subscriber>
   #equals: Equals<T>
 
   constructor(init: T, equals: Equals<T> = (b, a) => b === a) {
     this.#data = init
-    this.#subscribers = []
+    this.#subscribers = new Set()
     this.#equals = equals
   }
 
@@ -34,7 +34,7 @@ export class Signal<T = unknown> {
   }
 
   subscribe(fn: Subscriber): void {
-    this.#subscribers.push(fn)
+    this.#subscribers.add(fn)
   }
 }
 
