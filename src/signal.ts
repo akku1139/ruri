@@ -1,8 +1,8 @@
 import type { Equals, Subscriber } from "./types.ts"
 
-const gSubscribers: Array<Subscriber|null> = []
+let activeEffect: ReactiveEffect | null = null
 
-export class Signal<T = unknown> {
+export class Signal<T = any> {
   #data: T
   #subscribers: Set<Subscriber>
   #equals: Equals<T>
@@ -14,9 +14,9 @@ export class Signal<T = unknown> {
   }
 
   get value(): T {
-    const s = gSubscribers.at(-1)
-    if(s) {
-      this.subscribe(s)
+    if(activeEffect) {
+      this.subscribe(activeEffect.subscriber)
+      activeEffect.deps.add(this)
     }
     return this.#data
   }
@@ -36,18 +36,47 @@ export class Signal<T = unknown> {
   subscribe(fn: Subscriber): void {
     this.#subscribers.add(fn)
   }
+
+  unsubscribe(fn: Subscriber): boolean {
+    return this.#subscribers.delete(fn)
+  }
 }
 
-export const effect = (fn: Subscriber): void => {
-  // FIXME: Multiple duplicate effects (if multiple signals are dependent)
-  gSubscribers.push(fn)
-  fn()
-  gSubscribers.pop()
+class ReactiveEffect {
+  subscriber: Subscriber
+  deps: Set<Signal>
+
+  constructor(fn: Subscriber) {
+    this.subscriber = fn
+    this.deps = new Set()
+  }
+
+  run() {
+    activeEffect = this
+    try {
+      this.subscriber()
+    } finally {
+      activeEffect = null
+    }
+  }
+
+  cleanup() {
+    this.deps.forEach((dep) => {
+      dep.unsubscribe(this.subscriber)
+    })
+    this.deps.clear()
+  }
+}
+
+export const effect = (fn: Subscriber): (() => void) => {
+  const effectInstance = new ReactiveEffect(fn)
+  effectInstance.run()
+  return () => effectInstance.cleanup()
 }
 
 export const derived = <T>(fn: () => T): Signal<T> => {
   const s = new Signal(fn())
-  effect(() => {
+  const cleanup = effect(() => {
     s.value = fn()
   })
   return s
