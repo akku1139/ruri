@@ -1,6 +1,7 @@
 import type { Equals, Subscriber } from "./types.ts"
 
-let activeEffect: ReactiveEffect | null = null
+let activeEffectStack: Array<ReactiveEffect> = []
+const getActiveEffect = (): ReactiveEffect | null => activeEffectStack.at(-1) ?? null
 
 export class Signal<T = any> {
   #data: T
@@ -14,9 +15,10 @@ export class Signal<T = any> {
   }
 
   get value(): T {
-    if(activeEffect) {
-      this.subscribe(activeEffect.subscriber)
-      activeEffect.deps.add(this)
+    const currentEffect = getActiveEffect()
+    if(currentEffect) {
+      this.subscribe(currentEffect.subscriber)
+      currentEffect.deps.add(this)
     }
     return this.#data
   }
@@ -52,11 +54,11 @@ class ReactiveEffect {
   }
 
   run() {
-    activeEffect = this
+    activeEffectStack.push(this)
     try {
       this.subscriber()
     } finally {
-      activeEffect = null
+      activeEffectStack.pop()
     }
   }
 
