@@ -10,8 +10,6 @@ https://zenn.dev/fj68/articles/da3458abab5d1c#creatememo
 
 # XML Namespaces support
 
-# Sanitize HTML
-
 # Types for attributes
 
 - https://developer.mozilla.org/ja/docs/Web/HTML/Attributes
