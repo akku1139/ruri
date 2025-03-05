@@ -81,7 +81,14 @@ export const effect = (fn: Subscriber): (() => void) => {
 }
 
 export const derived = <T>(fn: () => T): Signal<T> => {
-  const s = new Signal(void 0 as T)
+  // :AI:
+  // let initialValue: T
+  // const effectInstance = new ReactiveEffect(() => {
+  //   initialValue = fn()
+  // })
+  // effectInstance.run()
+  // const s = new Signal<T>(initialValue!)
+  const s = new Signal(void 0 as T) // It is always set when the first run of effect
   effect(() => {
     s.value = fn()
   })
