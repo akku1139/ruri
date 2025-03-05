@@ -1,3 +1,4 @@
+import { Signal } from "./signal.ts"
 import type { Children } from "./types.ts"
 
 export const tagFactory = <T extends keyof HTMLElementTagNameMap>(tagName: T) =>
@@ -7,7 +8,16 @@ export const tagFactory = <T extends keyof HTMLElementTagNameMap>(tagName: T) =>
     Object.entries(props).forEach(([name, value]) => element.setAttribute(name, value))
 
     for(const child of children) {
-      element.append(child)
+      if(child instanceof HTMLElement) {
+        element.append(child)
+      } else if(child instanceof Signal) {
+        const c = document.createTextNode(String(child.value))
+        // FIXME: Objects like `Object.create(null)` cannot be stringify
+        child.subscribe(() => c.textContent = String(child.value))
+        element.append(c)
+      } else {
+        element.append(String(child))
+      }
     }
 
     return element

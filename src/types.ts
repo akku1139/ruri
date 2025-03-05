@@ -1,5 +1,8 @@
-export type Subscriber = () => void
-export type Signal<T = unknown> = { value: T, subscribe: (fn: Subscriber) => void }
+import type { Signal } from "./signal.ts"
 
-export type Child = HTMLElement | /* Signal | */ string
+export type Subscriber = () => void
+export type Equals<T> = (before: T, after: T) => boolean
+
+// TODO: support all primitive values
+export type Child = HTMLElement | Signal | string | number
 export type Children = Array<Child>

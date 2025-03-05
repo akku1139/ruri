@@ -1,35 +1,40 @@
-import type { Signal, Subscriber } from "./types.ts"
+import type { Equals, Subscriber } from "./types.ts"
 
 const gSubscribers: Array<Subscriber> = []
 
-export const signal = <T>(
-  init: T, equals: (before: T, after: T) => boolean = (b, a) => b === a
-): Signal<T> => {
-  let data: T = init
-  const subscribers: Array<Function> = []
+export class Signal<T = unknown> {
+  #data: T
+  #subscribers: Array<Subscriber>
+  #equals: Equals<T>
 
-  return {
-    get value() {
-      const s = gSubscribers.at(-1)
-      if(s) {
-        this.subscribe(s)
-      }
-      return data
-    },
-    set value(newValue) {
-      if(equals(data, newValue)) {
-        return
-      }
-      data = newValue
-      for(const s of subscribers) {
-        try{
-          s()
-        } catch {}
-      }
-    },
-    subscribe: (fn) => {
-      subscribers.push(fn)
+  constructor(init: T, equals: Equals<T> = (b, a) => b === a) {
+    this.#data = init
+    this.#subscribers = []
+    this.#equals = equals
+  }
+
+  get value(): T {
+    const s = gSubscribers.at(-1)
+    if(s) {
+      this.subscribe(s)
     }
+    return this.#data
+  }
+  set value(newValue) {
+    if(this.#equals(this.#data, newValue)) {
+      return
+    }
+    this.#data = newValue
+    for(const s of this.#subscribers) {
+      // TODO: error handling
+      try{
+        s()
+      } catch {}
+    }
+  }
+
+  subscribe(fn: Subscriber): void {
+    this.#subscribers.push(fn)
   }
 }
 
