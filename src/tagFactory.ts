@@ -9,13 +9,16 @@ export const tagFactory = <T extends keyof HTMLElementTagNameMap>(tagName: T) =>
 
     for(const child of children) {
       if(child instanceof HTMLElement) {
+        console.debug("child is HTMLElement", child)
         element.append(child)
       } else if(child instanceof Signal) {
+        console.debug("child is Signal", child)
         const c = document.createTextNode(String(child.value))
         // FIXME: Objects like `Object.create(null)` cannot be stringify
         child.subscribe(() => c.textContent = String(child.value))
         element.append(c)
       } else {
+        console.debug("child is ", child)
         element.append(String(child))
       }
     }
