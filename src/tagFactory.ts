@@ -6,7 +6,7 @@ export const tagFactory = <T extends keyof HTMLElementTagNameMap>(tagName: T) =>
   (props: HTMLElementAttributeMap[T], ...children: Children): HTMLElementTagNameMap[T] => {
     const element = document.createElement(tagName)
 
-    Object.entries(props).forEach(([name, value]) => element.setAttribute(name, value))
+    Object.entries(props).forEach(([name, value]) => element.setAttribute(name, String(value))) // TODO: class array, css in js
 
     for(const child of children) {
       if(child instanceof HTMLElement) {
