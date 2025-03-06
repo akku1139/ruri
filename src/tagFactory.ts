@@ -4,7 +4,7 @@ import { escapeHTML } from "./utils/escape.ts"
 
 export const tagFactory = <T extends keyof HTMLElementTagNameMap>(tagName: T) =>
   (props: Record<string, string>, ...children: Children): HTMLElementTagNameMap[T] => {
-    const element = document.createElement<typeof tagName>(tagName)
+    const element = document.createElement(tagName)
 
     Object.entries(props).forEach(([name, value]) => element.setAttribute(name, value))
 
