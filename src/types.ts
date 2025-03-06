@@ -116,62 +116,39 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
     type: CommonHTMLAttributes["type"]
     referrerpolicy: CommonHTMLAttributes["referrerpolicy"]
   }
-  address: {}
   area: {}
-  article: {}
-  aside: {}
   audio: {}
-  b: {}
   base: {
     href: CommonHTMLAttributes["href"]
     target: CommonHTMLAttributes["target"]
   }
-  bdi: {}
-  bdo: {}
-  blockquote: {}
+  blockquote: {
+    cite: string
+  }
   body: {}
-  br: {}
   button: {}
-  canvas: {}
-  caption: {}
-  cite: {}
-  code: {}
-  col: {}
-  colgroup: {}
+  canvas: {
+    width: number
+    height: number
+  }
+  col: {
+    span: number
+  }
+  colgroup: {
+    span: number
+  }
   data: {}
-  datalist: {}
-  dd: {}
   del: {}
   details: {}
-  dfn: {}
   dialog: {}
-  div: {}
-  dl: {}
-  dt: {}
-  em: {}
   embed: {}
   fieldset: {}
-  figcaption: {}
-  figure: {}
-  footer: {}
   form: {}
-  h1: {}
-  h2: {}
-  h3: {}
-  h4: {}
-  h5: {}
-  h6: {}
-  header: {}
-  hgroup: {}
-  hr: {}
-  i: {}
   iframe: {}
   img: {}
   input: {}
   ins: {}
-  kbd: {}
   label: {}
-  legend: {}
   li: {}
   link: {
     href: CommonHTMLAttributes["href"]
@@ -193,56 +170,31 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
     disabled: boolean
     fetchpriority: CommonHTMLAttributes["fetchpriority"]
   }
-  main: {}
   map: {}
-  mark: {}
-  menu: {}
   meta: {}
   meter: {}
-  nav: {}
-  noscript: {}
   object: {}
   ol: {}
   optgroup: {}
   option: {}
   output: {}
-  p: {}
-  picture: {}
-  pre: {}
   progress: {}
-  q: {}
-  rp: {}
-  rt: {}
-  ruby: {}
-  s: {}
-  samp: {}
+  q: {
+    cite: string
+  }
   script: {}
-  search: {}
   section: {}
   select: {}
-  slot: {}
-  small: {}
+  slot: {
+    name: string
+  }
   source: {}
-  span: {}
-  strong: {}
   style: {}
-  sub: {}
-  summary: {}
-  sup: {}
-  table: {}
-  tbody: {}
   td: {}
   template: {}
   textarea: {}
-  tfoot: {}
   th: {}
-  thead: {}
   time: {}
-  tr: {}
   track: {}
-  u: {}
-  ul: {}
-  var: {}
   video: {}
-  wbr: {}
 }>
