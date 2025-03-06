@@ -1,5 +1,6 @@
 import { Signal } from "./signal.ts"
 import type { Children } from "./types.ts"
+import { escapeHTML } from "./utils/escape.ts"
 
 export const tagFactory = <T extends keyof HTMLElementTagNameMap>(tagName: T) =>
   (props: Record<string, string>, ...children: Children): HTMLElementTagNameMap[T] => {
