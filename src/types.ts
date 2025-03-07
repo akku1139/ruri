@@ -58,7 +58,7 @@ type CommonHTMLAttributes = { // use ABC order
 
 // based on HTML Living Standard (March 6, 2025)
 // https://html.spec.whatwg.org/multipage/dom.html#global-attributes
-type HTMLElementGlobalAttribute = Partial<{
+type HTMLElementGlobalAttribute = {
   id: string
   class: string // TODO: allow array
 
@@ -98,10 +98,10 @@ type HTMLElementGlobalAttribute = Partial<{
   /** @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/part */
   part: string // CSS Shadow Parts
   exportparts: string // CSS Shadow Parts
-}>
+}
 
 type HTMLElementAttributeFactory<T extends Record<string, object>> = {
-  [K in keyof T | Exclude<keyof HTMLElementTagNameMap, keyof T>]: HTMLElementGlobalAttribute & (K extends keyof T ? Partial<T[K]> : {})
+  [K in keyof T | Exclude<keyof HTMLElementTagNameMap, keyof T>]: Partial<HTMLElementGlobalAttribute & (K extends keyof T ? T[K] : {})>
 }
 
 export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
