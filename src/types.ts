@@ -24,11 +24,15 @@ type MakeUnionsArray<T extends object> = {
  * Attribute names must be written in the order listed in the HTML specification.
  */
 
+// TODO: Give HTMLElement to the attribute that specifies the id of the dependent element, and automatically extracts the id
+
 type CommonHTMLAttributes = { // use ABC order
   /** @see https://html.spec.whatwg.org/#blocking-attribute */
   blocking: "render"
   /** @see https://html.spec.whatwg.org/#cors-settings-attribute */
   crossorigin: "anonymous" | "" | "use-credentials"
+  /** @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/time#valid_datetime_values */
+  datetime: string
   /** @see https://html.spec.whatwg.org/#fetch-priority-attribute */
   fetchpriority: "high" | "low" | "auto"
   /** @see https://html.spec.whatwg.org/#hyperlink */
@@ -44,16 +48,17 @@ type CommonHTMLAttributes = { // use ABC order
   }>
   /** @see https://drafts.csswg.org/mediaqueries/ @see https://html.spec.whatwg.org/#mq */
   media: string // TODO: union
+  ping: string // TODO: Allow array and URL
   /** MIME type */
   type: string
   referrerpolicy: "" | "no-referrer" | "no-referrer-when-downgrade" | "same-origin" | "origin" | "strict-origin" | "origin-when-cross-origin" | "strict-origin-when-cross-origin" | "unsafe-url"
   /** @see https://html.spec.whatwg.org/#sizes-attribute */
   sizes: string // TODO: type
+  src: string | URL
   /** @see https://html.spec.whatwg.org/#srcset-attribute */
   srcset: string // TODO: type
   /** @see https://html.spec.whatwg.org/#navigable-target-names */
   target: "_blank" | "_self" | "_parent" | "_top"
-  | "_unfencedTop" // Non-standard
 }
 
 // based on HTML Living Standard (March 6, 2025)
@@ -109,14 +114,25 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
     // attributionsrc: string // Experimental
     href: CommonHTMLAttributes["href"]
     target: CommonHTMLAttributes["target"]
+      | "_unfencedTop" // Non-standard
     download: string | boolean
-    ping: string // TODO: Allow array and URL
+    ping: CommonHTMLAttributes["ping"]
     rel: CommonHTMLAttributes["linkTypes"]["a_area"] | string
     hreflang: CommonHTMLAttributes["lang"]
     type: CommonHTMLAttributes["type"]
     referrerpolicy: CommonHTMLAttributes["referrerpolicy"]
   }
-  area: {}
+  area: {
+    alt: string
+    coords: string
+    shape: "circle" | "circ" | "default" | "poly" | "polygon" | "rect" | "rectangle"
+    href: CommonHTMLAttributes["href"]
+    target: CommonHTMLAttributes["target"]
+    download: string
+    ping: CommonHTMLAttributes["ping"]
+    rel: CommonHTMLAttributes["linkTypes"]["a_area"]
+    referrerpolicy: CommonHTMLAttributes["referrerpolicy"]
+  }
   audio: {}
   base: {
     href: CommonHTMLAttributes["href"]
@@ -137,18 +153,43 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
   colgroup: {
     span: number
   }
-  data: {}
-  del: {}
-  details: {}
-  dialog: {}
-  embed: {}
-  fieldset: {}
+  data: {
+    value: string
+  }
+  del: {
+    cite: string
+    datetime: CommonHTMLAttributes["datetime"]
+  }
+  details: {
+    name: string
+    open: boolean
+  }
+  dialog: {
+    closedby: "any" | "closerequest" | "none"
+    open: boolean
+  }
+  embed: {
+    src: CommonHTMLAttributes["src"]
+    type: CommonHTMLAttributes["type"]
+    width: number
+    height: number
+  }
+  fieldset: {
+    disabled: boolean
+    form: string // a form element
+    name: string
+  }
   form: {}
   iframe: {}
   img: {}
   input: {}
-  ins: {}
-  label: {}
+  ins: {
+    cite: string
+    datetime: CommonHTMLAttributes["datetime"]
+  }
+  label: {
+    for: string
+  }
   li: {}
   link: {
     href: CommonHTMLAttributes["href"]
@@ -170,15 +211,43 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
     disabled: boolean
     fetchpriority: CommonHTMLAttributes["fetchpriority"]
   }
-  map: {}
+  map: {
+    name: string
+  }
   meta: {}
-  meter: {}
+  meter: {
+    value: number
+    min: number
+    max: number
+    low: number
+    high: number
+    optimum: number
+  }
   object: {}
-  ol: {}
-  optgroup: {}
-  option: {}
-  output: {}
-  progress: {}
+  ol: {
+    reversed: boolean
+    start: number
+    type: "1" | "a" | "A" | "i" | "I"
+  }
+  optgroup: {
+    disabled: boolean
+    label: string
+  }
+  option: {
+    disabled: boolean
+    label: string
+    selected: boolean
+    value: string
+  }
+  output: {
+    for: Array<string> | string
+    form: string // a form element
+    name: string
+  }
+  progress: {
+    value: number
+    max: number
+  }
   q: {
     cite: string
   }
@@ -190,11 +259,34 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
   }
   source: {}
   style: {}
-  td: {}
-  template: {}
+  td: {
+    colspan: number
+    rowspan: number
+    headers: string
+  }
+  template: {
+    shadowrootmode: "open" | "closed"
+    shadowrootdelegatesfocus: boolean
+    shadowrootclonable: boolean
+    shadowrootserializable: boolean
+  }
   textarea: {}
-  th: {}
-  time: {}
-  track: {}
+  th: {
+    colspan: number
+    rowspan: number
+    headers: string
+    scope: "row" | "col" | "rowgroup" | "colgroup"
+    abbr: string
+  }
+  time: {
+    datetime: CommonHTMLAttributes["datetime"]
+  }
+  track: {
+    kind: "subtitles" | "captions" | "descriptions" | "chapters" | "metadata"
+    src: CommonHTMLAttributes["src"]
+    srclang: CommonHTMLAttributes["lang"]
+    label: string
+    default: boolean
+  }
   video: {}
 }>
