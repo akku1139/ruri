@@ -73,7 +73,7 @@ type MediaQuery = string
 
 // based on HTML Living Standard (March 6, 2025)
 // https://html.spec.whatwg.org/multipage/dom.html#global-attributes
-type HTMLElementGlobalAttribute = {
+type HTMLElementGlobalAttributes = {
   id: string
   class: string // TODO: allow array
 
@@ -115,14 +115,18 @@ type HTMLElementGlobalAttribute = {
   exportparts: string // CSS Shadow Parts
 }
 
+// ---------- Factory ----------
+
 type HTMLElementAttributeFactory<T extends Record<string, object>> = {
-  [K in keyof T | Exclude<keyof HTMLElementTagNameMap, keyof T>]: Partial<HTMLElementGlobalAttribute & (K extends keyof T ? T[K] : {})>
+  [K in keyof T | Exclude<keyof HTMLElementTagNameMap, keyof T>]: Partial<HTMLElementGlobalAttributes & (K extends keyof T ? T[K] : {})>
 }
 
 type HTMLMetaElementAttributeFactory<T extends [string, unknown, object?]> = {
   name: T[0]
   content: T[1]
 } & T[2]
+
+// --------------------
 
 // https://html.spec.whatwg.org/#elements-3
 export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
@@ -165,7 +169,13 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
   blockquote: {
     cite: string
   }
-  body: {} // generate from WindowEventHandlersEventMap
+  body: {
+    [key in Exclude<keyof WindowEventHandlersEventMap,
+      // not found in https://html.spec.whatwg.org/#the-body-element
+      "gamepaddisconnected" | "gamepaddisconnected"
+    >as `on${key}`]: ((this: HTMLBodyElement, event: WindowEventHandlersEventMap[key]) => unknown)
+    // onafterprint: ((this: WindowEventHandlers, ev: Event) => any) | null;
+  }
   button: {
     command: "toggle-popover" | "show-popover" | "hide-popover" | "close" | "show-modal" | `--${string}` // Experimental
     commandfor: string // Experimental
