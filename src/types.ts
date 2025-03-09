@@ -7,7 +7,10 @@ export type Equals<T> = (before: T, after: T) => boolean
 export type Child = HTMLElement | Signal | string | number
 export type Children = Array<Child>
 
+// https://developer.mozilla.org/en-US/docs/Web/CSS/color_value
 type CSSColor = string
+
+type UTF8 = "utf-8" | "UTF-8" // ASCII case-insensitive match for "UTF-8".
 
 // ---------- Utils ----------
 
@@ -35,8 +38,6 @@ type CommonHTMLAttributes = { // use ABC order
   datetime: string
   /** @see https://html.spec.whatwg.org/#fetch-priority-attribute */
   fetchpriority: "high" | "low" | "auto"
-  /** @see https://html.spec.whatwg.org/#hyperlink */
-  href: string | URL
   /** @see https://w3c.github.io/webappsec-subresource-integrity/ */
   integrity: string
   lang: string // TODO: Enumeration of all language codes?
@@ -49,8 +50,7 @@ type CommonHTMLAttributes = { // use ABC order
   /** @see https://drafts.csswg.org/mediaqueries/ @see https://html.spec.whatwg.org/#mq */
   media: string // TODO: union
   ping: string // TODO: Allow array and URL
-  /** MIME type */
-  type: string
+  preload: "auto" | "" | "none" | "metadata"
   referrerpolicy: "" | "no-referrer" | "no-referrer-when-downgrade" | "same-origin" | "origin" | "strict-origin" | "origin-when-cross-origin" | "strict-origin-when-cross-origin" | "unsafe-url"
   /** @see https://html.spec.whatwg.org/#sizes-attribute */
   sizes: string // TODO: type
@@ -59,7 +59,14 @@ type CommonHTMLAttributes = { // use ABC order
   srcset: string // TODO: type
   /** @see https://html.spec.whatwg.org/#navigable-target-names */
   target: "_blank" | "_self" | "_parent" | "_top"
+  /** MIME type */
+  type: string
+  /** @see https://html.spec.whatwg.org/#hyperlink */
+  url: string | URL
 }
+
+// https://drafts.csswg.org/mediaqueries/
+type MediaQuery = string
 
 // based on HTML Living Standard (March 6, 2025)
 // https://html.spec.whatwg.org/multipage/dom.html#global-attributes
@@ -109,10 +116,16 @@ type HTMLElementAttributeFactory<T extends Record<string, object>> = {
   [K in keyof T | Exclude<keyof HTMLElementTagNameMap, keyof T>]: Partial<HTMLElementGlobalAttribute & (K extends keyof T ? T[K] : {})>
 }
 
+type HTMLMetaElementAttributeFactory<T extends [string, unknown, object?]> = {
+  name: T[0]
+  content: T[1]
+} & T[2]
+
+// https://html.spec.whatwg.org/#elements-3
 export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
   a: {
     // attributionsrc: string // Experimental
-    href: CommonHTMLAttributes["href"]
+    href: CommonHTMLAttributes["url"]
     target: CommonHTMLAttributes["target"]
       | "_unfencedTop" // Non-standard
     download: string | boolean
@@ -126,23 +139,46 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
     alt: string
     coords: string
     shape: "circle" | "circ" | "default" | "poly" | "polygon" | "rect" | "rectangle"
-    href: CommonHTMLAttributes["href"]
+    href: CommonHTMLAttributes["url"]
     target: CommonHTMLAttributes["target"]
     download: string
     ping: CommonHTMLAttributes["ping"]
     rel: CommonHTMLAttributes["linkTypes"]["a_area"]
     referrerpolicy: CommonHTMLAttributes["referrerpolicy"]
   }
-  audio: {}
+  audio: {
+    src: CommonHTMLAttributes["url"]
+    crossorigin: CommonHTMLAttributes["crossorigin"]
+    preload: CommonHTMLAttributes["preload"]
+    autoplay: boolean
+    loop: boolean
+    muted: boolean
+    controls: boolean
+  }
   base: {
-    href: CommonHTMLAttributes["href"]
+    href: CommonHTMLAttributes["url"]
     target: CommonHTMLAttributes["target"]
   }
   blockquote: {
     cite: string
   }
   body: {}
-  button: {}
+  button: {
+    command: "toggle-popover" | "show-popover" | "hide-popover" | "close" | "show-modal" | `--${string}` // Experimental
+    commandfor: string // Experimental
+    disabled: boolean
+    form: string // form element
+    formaction: CommonHTMLAttributes["url"]
+    formenctype: "application/x-www-form-urlencoded" | "multipart/form-data" | "text/plain"
+    formmethod: "get" | "post" | "dialog"
+    formnovalidate: boolean
+    formtarget: CommonHTMLAttributes["target"]
+    name: string
+    popovertarget: string // Popover API
+    popovertargetaction: "toggle" | "show" | "hide" // Popover API
+    type: "submit" | "reset" | "button"
+    value: string
+  }
   canvas: {
     width: number
     height: number
@@ -169,7 +205,7 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
     open: boolean
   }
   embed: {
-    src: CommonHTMLAttributes["src"]
+    src: CommonHTMLAttributes["url"]
     type: CommonHTMLAttributes["type"]
     width: number
     height: number
@@ -179,7 +215,17 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
     form: string // a form element
     name: string
   }
-  form: {}
+  form: {
+    "accept-charset": UTF8
+    action: CommonHTMLAttributes["url"]
+    autocomplete: "on" | "off"
+    enctype: "application/x-www-form-urlencoded" | "multipart/form-data" | "text/plain"
+    method: "get" | "post" | "dialog"
+    name: string
+    novalidate: boolean
+    target: CommonHTMLAttributes["target"]
+    rel: CommonHTMLAttributes["linkTypes"]["form"]
+  }
   iframe: {}
   img: {}
   input: {}
@@ -192,7 +238,7 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
   }
   li: {}
   link: {
-    href: CommonHTMLAttributes["href"]
+    href: CommonHTMLAttributes["url"]
     crossorigin: CommonHTMLAttributes["crossorigin"]
     rel: CommonHTMLAttributes["linkTypes"]["link"]
     media: CommonHTMLAttributes["media"]
@@ -214,7 +260,38 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
   map: {
     name: string
   }
-  meta: {}
+  meta: (
+    // https://wiki.whatwg.org/wiki/MetaExtensions
+    // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/meta/name
+    // FIXME: (property) content?: string | undefined
+    HTMLMetaElementAttributeFactory<
+      // Standard metadata names defined in the HTML specification
+        ["application-name", string]
+      | ["author", string]
+      | ["description", string]
+      | ["generator", string]
+      | ["keywords", string]
+      | ["referrer", Exclude<CommonHTMLAttributes["referrerpolicy"], "" | "unsafe-url"> | "unsafe-URL"]
+      | ["theme-color", CSSColor, { media: MediaQuery }]
+      | ["color-scheme", "normal" | "light" | "dark" | "light dark" | "dark light" | "only light"]
+      // Standard metadata names defined in other specifications
+      | ["viewport", "width" | "height" | "initial-scale" | "maximum-scale" | "minimum-scale" | "user-scalable" | "viewport-fit"]
+    > // FIXME: enable
+    // | ( {
+    //   name: string
+    //   content: string
+    //   /**
+    //    * This attribute is only relevant when the element's name attribute is set to theme-color.
+    //    * Otherwise, it has no effect, and should not be included.
+    //    * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/meta#media
+    //    */
+    //   media: never
+    // } & {} )
+  ) & {
+    "http-equiv": "content-language" | "content-type" | "default-style" | "refresh" | "set-cookie" | "x-ua-compatible" | "content-security-policy"
+    charset: UTF8
+    media: never
+  }
   meter: {
     value: number
     min: number
@@ -223,7 +300,14 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
     high: number
     optimum: number
   }
-  object: {}
+  object: {
+    data: CommonHTMLAttributes["url"]
+    type: CommonHTMLAttributes["type"]
+    name: string
+    form: string // form element
+    width: number
+    height: number
+  }
   ol: {
     reversed: boolean
     start: number
@@ -252,7 +336,6 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
     cite: string
   }
   script: {}
-  section: {}
   select: {}
   slot: {
     name: string
@@ -283,10 +366,22 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
   }
   track: {
     kind: "subtitles" | "captions" | "descriptions" | "chapters" | "metadata"
-    src: CommonHTMLAttributes["src"]
+    src: CommonHTMLAttributes["url"]
     srclang: CommonHTMLAttributes["lang"]
     label: string
     default: boolean
   }
-  video: {}
+  video: {
+    src: CommonHTMLAttributes["url"]
+    crossorigin: CommonHTMLAttributes["crossorigin"]
+    poster: CommonHTMLAttributes["url"]
+    preload: CommonHTMLAttributes["preload"]
+    autoplay: boolean
+    playsinline: boolean
+    loop: boolean
+    muted: boolean
+    controls: boolean
+    width: number
+    height: number
+  }
 }>
