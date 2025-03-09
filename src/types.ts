@@ -30,10 +30,11 @@ type MakeUnionsArray<T extends object> = {
 // TODO: Give HTMLElement to the attribute that specifies the id of the dependent element, and automatically extracts the id
 
 type CommonHTMLAttributes = { // use ABC order
+  autocomplete: "on" | "off" | ( string & {} ) | Array<string>
   /** @see https://html.spec.whatwg.org/#blocking-attribute */
   blocking: "render"
   /** @see https://html.spec.whatwg.org/#cors-settings-attribute */
-  crossorigin: "anonymous" | "" | "use-credentials"
+  cors: "anonymous" | "" | "use-credentials"
   /** @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/time#valid_datetime_values */
   datetime: string
   /** @see https://html.spec.whatwg.org/#fetch-priority-attribute */
@@ -41,6 +42,8 @@ type CommonHTMLAttributes = { // use ABC order
   /** @see https://w3c.github.io/webappsec-subresource-integrity/ */
   integrity: string
   lang: string // TODO: Enumeration of all language codes?
+  /** @see https://html.spec.whatwg.org/#lazy-loading-attribute */
+  lazyloading: "lazy" | "eager"
   /** @see https://html.spec.whatwg.org/#linkTypes */
   linkTypes: MakeUnionsArray<{
     link: "alternate" | "canonical" | "author" | "dns-prefetch" | "expect" | "help" | "icon" | "manifest" | "modulepreload" | "license" | "next" | "pingback" | "preconnect" | "prefetch" | "preload" | "prev" | "privacy-policy" | "search" | "stylesheet" | "terms-of-service"
@@ -49,6 +52,8 @@ type CommonHTMLAttributes = { // use ABC order
   }>
   /** @see https://drafts.csswg.org/mediaqueries/ @see https://html.spec.whatwg.org/#mq */
   media: string // TODO: union
+  /** MIME type */
+  mime: string
   ping: string // TODO: Allow array and URL
   preload: "auto" | "" | "none" | "metadata"
   referrerpolicy: "" | "no-referrer" | "no-referrer-when-downgrade" | "same-origin" | "origin" | "strict-origin" | "origin-when-cross-origin" | "strict-origin-when-cross-origin" | "unsafe-url"
@@ -59,8 +64,6 @@ type CommonHTMLAttributes = { // use ABC order
   srcset: string // TODO: type
   /** @see https://html.spec.whatwg.org/#navigable-target-names */
   target: "_blank" | "_self" | "_parent" | "_top"
-  /** MIME type */
-  type: string
   /** @see https://html.spec.whatwg.org/#hyperlink */
   url: string | URL
 }
@@ -132,7 +135,7 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
     ping: CommonHTMLAttributes["ping"]
     rel: CommonHTMLAttributes["linkTypes"]["a_area"] | string
     hreflang: CommonHTMLAttributes["lang"]
-    type: CommonHTMLAttributes["type"]
+    type: CommonHTMLAttributes["mime"]
     referrerpolicy: CommonHTMLAttributes["referrerpolicy"]
   }
   area: {
@@ -148,7 +151,7 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
   }
   audio: {
     src: CommonHTMLAttributes["url"]
-    crossorigin: CommonHTMLAttributes["crossorigin"]
+    crossorigin: CommonHTMLAttributes["cors"]
     preload: CommonHTMLAttributes["preload"]
     autoplay: boolean
     loop: boolean
@@ -162,7 +165,7 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
   blockquote: {
     cite: string
   }
-  body: {}
+  body: {} // generate from WindowEventHandlersEventMap
   button: {
     command: "toggle-popover" | "show-popover" | "hide-popover" | "close" | "show-modal" | `--${string}` // Experimental
     commandfor: string // Experimental
@@ -206,7 +209,7 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
   }
   embed: {
     src: CommonHTMLAttributes["url"]
-    type: CommonHTMLAttributes["type"]
+    type: CommonHTMLAttributes["mime"]
     width: number
     height: number
   }
@@ -226,8 +229,34 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
     target: CommonHTMLAttributes["target"]
     rel: CommonHTMLAttributes["linkTypes"]["form"]
   }
-  iframe: {}
-  img: {}
+  iframe: {
+    src: CommonHTMLAttributes["url"]
+    srcdoc: string // TODO: add HTMLElement
+    name: string
+    sandbox: string | Array<"allow-downloads" | "allow-forms" | "allow-modals" | "allow-orientation-lock" | "allow-pointer-lock" | "allow-popups" | "allow-popups-to-escape-sandbox" | "allow-presentation" | "allow-same-origin" | "allow-scripts" | "allow-top-navigation" | "allow-top-navigation-by-user-activation" | "allow-top-navigation-to-custom-protocols">
+    /** @see https://html.spec.whatwg.org/#attr-iframe-allow */
+    allow: string // TODO: union
+    allowfullscreen: boolean
+    width: number
+    height: number
+    referrerpolicy: CommonHTMLAttributes["referrerpolicy"]
+    loading: CommonHTMLAttributes["lazyloading"]
+  }
+  img: {
+    alt: string
+    src: CommonHTMLAttributes["url"]
+    srcset: CommonHTMLAttributes["srcset"]
+    sizes: CommonHTMLAttributes["sizes"]
+    crossorigin: CommonHTMLAttributes["cors"]
+    usemap: `#${string}` // map element's id
+    ismap: boolean
+    width: number
+    height: number
+    referrerpolicy: CommonHTMLAttributes["referrerpolicy"]
+    decoding: "sync" | "async" | "auto"
+    loading: CommonHTMLAttributes["lazyloading"]
+    fetchpriority: CommonHTMLAttributes["fetchpriority"]
+  }
   input: {}
   ins: {
     cite: string
@@ -236,15 +265,19 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
   label: {
     for: string
   }
-  li: {}
+  li: {
+    value: number
+    // /** @deprecated */
+    // type: "1" | "a" | "A" | "i" | "I"
+  }
   link: {
     href: CommonHTMLAttributes["url"]
-    crossorigin: CommonHTMLAttributes["crossorigin"]
+    crossorigin: CommonHTMLAttributes["cors"]
     rel: CommonHTMLAttributes["linkTypes"]["link"]
     media: CommonHTMLAttributes["media"]
     integrity: CommonHTMLAttributes["integrity"]
     hreflang: CommonHTMLAttributes["lang"]
-    type: CommonHTMLAttributes["type"]
+    type: CommonHTMLAttributes["mime"]
     referrerpolicy: CommonHTMLAttributes["referrerpolicy"]
     sizes: string // TODO: Type sizes="16x16 32x32 48x48"
     imagesrcset: CommonHTMLAttributes["srcset"]
@@ -302,7 +335,7 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
   }
   object: {
     data: CommonHTMLAttributes["url"]
-    type: CommonHTMLAttributes["type"]
+    type: CommonHTMLAttributes["mime"]
     name: string
     form: string // form element
     width: number
@@ -335,13 +368,43 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
   q: {
     cite: string
   }
-  script: {}
-  select: {}
+  script: {
+    src: CommonHTMLAttributes["url"]
+    type: CommonHTMLAttributes["mime"]
+    nomodule: boolean
+    async: boolean
+    defer: boolean
+    crossorigin: CommonHTMLAttributes["cors"]
+    integrity: CommonHTMLAttributes["integrity"]
+    referrerpolicy: CommonHTMLAttributes["referrerpolicy"]
+    blocking: CommonHTMLAttributes["blocking"]
+    fetchpriority: CommonHTMLAttributes["fetchpriority"]
+  }
+  select: {
+    autocomplete: CommonHTMLAttributes["autocomplete"]
+    disabled: boolean
+    form: string // form element
+    multiple: boolean
+    name: string
+    required: boolean
+    size: number
+  }
   slot: {
     name: string
   }
-  source: {}
-  style: {}
+  source: {
+    type: CommonHTMLAttributes["mime"]
+    media: MediaQuery
+    src: CommonHTMLAttributes["url"]
+    srcset: CommonHTMLAttributes["srcset"]
+    sizes: CommonHTMLAttributes["sizes"]
+    width: number
+    height: number
+  }
+  style: {
+    media: MediaQuery
+    blocking: CommonHTMLAttributes["blocking"]
+  }
   td: {
     colspan: number
     rowspan: number
@@ -373,7 +436,7 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
   }
   video: {
     src: CommonHTMLAttributes["url"]
-    crossorigin: CommonHTMLAttributes["crossorigin"]
+    crossorigin: CommonHTMLAttributes["cors"]
     poster: CommonHTMLAttributes["url"]
     preload: CommonHTMLAttributes["preload"]
     autoplay: boolean
