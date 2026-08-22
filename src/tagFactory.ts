@@ -87,7 +87,36 @@ export const applyAttribute = (element: AnyElement, name: string, value: unknown
   element.setAttribute(name, stringifyChild(value))
 }
 
+export const boundElements: WeakSet<object> = new WeakSet()
+
+/**
+ * Elements carrying event listeners or reactive attribute bindings. Row
+ * updates must not patch through them in place - closures would go stale -
+ * so such subtrees are swapped instead.
+ */
+export const markBound = (element: AnyElement): void => {
+  boundElements.add(element)
+}
+
+export const hasBoundSubtree = (root: Node): boolean => {
+  const stack: Array<Node> = [root]
+  while(stack.length > 0) {
+    const node = stack.pop()!
+    if(boundElements.has(node)) {
+      return true
+    }
+    const children = (node as ParentNode).childNodes
+    if(children !== undefined && typeof children.length === "number") {
+      for(let index = 0; index < children.length; index++) {
+        stack.push(children[index]!)
+      }
+    }
+  }
+  return false
+}
+
 export const bindAttributeSignal = (element: AnyElement, name: string, signal: Signal<unknown>): void => {
+  markBound(element)
   applyAttribute(element, name, signal.peek())
   const update = (): void => {
     applyAttribute(element, name, signal.peek())
@@ -155,6 +184,7 @@ function applyProps(
     if(typeof value === "function") {
       if(EVENT_ATTRIBUTE_PATTERN.test(name)) {
         element.addEventListener(name.slice(2).toLowerCase(), value as EventListener)
+        markBound(element)
       } else {
         applyAttribute(element, name, value)
       }

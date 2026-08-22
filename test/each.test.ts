@@ -141,3 +141,30 @@ test("replacing an item object re-renders only that row", () => {
   assert.notEqual(elementChildren(shim)[0], rowOne, "the updated row is re-rendered")
   assert.equal(elementChildren(shim)[1], rowTwo, "untouched rows keep their DOM nodes")
 })
+
+test("row updates patch in place when safe and swap when bound", () => {
+  const items = new Signal<readonly Todo[]>([
+    { id: 1, text: "one" },
+    { id: 2, text: "two" },
+  ])
+  const list = tags.ul({}, each(items, (todo: Todo) =>
+      tags.li({ "data-id": String(todo.id) }, todo.text), { key: (todo: Todo) => todo.id }))
+  const container = document.createElement("div")
+  container.append(list)
+  const firstRow = elementChildren(asShim(list))[0]!
+
+  items.value = [{ id: 1, text: "ONE" }, { id: 2, text: "two" }]
+  assert.equal(elementChildren(asShim(list))[0], firstRow, "unbound rows are patched in place")
+  assert.equal(firstRow.textContent, "ONE")
+
+  const interactive = new Signal<readonly Todo[]>([{ id: 9, text: "button" }])
+  const buttonList = tags.ul({}, each(interactive, (todo: Todo) =>
+      tags.li({}, tags.button({ onclick: (): void => {} }, todo.text)), { key: (t: Todo) => t.id }))
+  const container2 = document.createElement("div")
+  container2.append(buttonList)
+  const boundRow = elementChildren(asShim(buttonList))[0]
+
+  interactive.value = [{ id: 9, text: "BUTTON" }]
+  assert.notEqual(elementChildren(asShim(buttonList))[0], boundRow,
+      "rows containing event listeners are swapped, not patched")
+})

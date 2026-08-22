@@ -35,10 +35,6 @@ jobs:
 
       - run: pnpm build
 
-      - name: Install benchmark dependencies
-        run: npm ci --no-audit --no-fund
-        working-directory: bench
-
       - name: Run benchmarks
         run: node run.mjs
         working-directory: bench

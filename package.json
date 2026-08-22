@@ -22,7 +22,9 @@
     "typecheck": "tsc --noEmit",
     "example:client": "pnpm run build && node examples/client/server.js",
     "example:fullstack": "pnpm run build && node examples/fullstack/server.js",
-    "generate": "node scripts/generate-types.mjs"
+    "generate": "node scripts/generate-types.mjs",
+    "docs:build": "pnpm -C docs run build",
+    "docs:dev": "pnpm -C docs run dev"
   },
   "exports": {
     ".": {

@@ -3,3 +3,9 @@
 
 /.cache
 node_modules/
+
+# docs build output
+docs/dist/
+
+# bench output (archived to the benchmark issue instead)
+bench-results.md

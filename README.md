@@ -247,6 +247,15 @@ pnpm example:client      # http://localhost:8787/examples/client/
 pnpm example:fullstack   # http://localhost:8788/
 ```
 
+## Documentation
+
+The docs in `docs/` are markdown rendered to HTML by ruri's own SSR:
+
+```sh
+pnpm docs:build   # static build -> docs/dist
+pnpm docs:dev     # live SSR dev server on http://localhost:4173
+```
+
 ## Development
 
 ```sh

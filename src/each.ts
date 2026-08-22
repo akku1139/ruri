@@ -3,6 +3,7 @@ import { Signal, effect } from "./signal.ts"
 import { ServerFragment } from "./server/element.ts"
 import type { Child } from "./types.ts"
 import { registerCleanup, runCleanupsFor } from "./utils/cleanup.ts"
+import { hasBoundSubtree } from "./tagFactory.ts"
 
 const EACH_ANCHOR_DATA = "ruri:each"
 
@@ -128,6 +129,82 @@ export const subscribeReconciliation = <T>(anchor: Comment, controller: EachCont
   })
 }
 
+const sameShape = (oldNode: Node, newNode: Node): boolean => {
+  if(oldNode.nodeType !== newNode.nodeType || (oldNode as Element).tagName?.toLowerCase() !== (newNode as Element).tagName?.toLowerCase()) {
+    return false
+  }
+  if(oldNode.nodeType === 3) {
+    return true
+  }
+  const oldChildren = (oldNode as ParentNode).childNodes
+  const newChildren = (newNode as ParentNode).childNodes
+  if(oldChildren === undefined || newChildren === undefined || oldChildren.length !== newChildren.length) {
+    return false
+  }
+  for(let index = 0; index < oldChildren.length; index++) {
+    const oldChild = oldChildren[index]!
+    const newChild = newChildren[index]!
+    if(oldChild.nodeType === 8 || newChild.nodeType === 8 || hasBoundSubtree(oldChild) || hasBoundSubtree(newChild)) {
+      return false
+    }
+    if(!sameShape(oldChild, newChild)) {
+      return false
+    }
+  }
+  return true
+}
+
+const patchInto = (oldNode: Node, newNode: Node): void => {
+  if(oldNode.nodeType === 3) {
+    ;(oldNode as Text).data = (newNode as Text).data
+    return
+  }
+  const element = oldNode as HTMLElement
+  const source = newNode as HTMLElement
+
+  for(const name of source.getAttributeNames()) {
+    const value = source.getAttribute(name)
+    if(element.getAttribute(name) !== value) {
+      if(value === null) {
+        element.removeAttribute(name)
+      } else {
+        element.setAttribute(name, value)
+      }
+    }
+  }
+  for(const name of element.getAttributeNames()) {
+    if(source.getAttribute(name) === null) {
+      element.removeAttribute(name)
+    }
+  }
+
+  const oldChildren = (oldNode as ParentNode).childNodes
+  const newChildren = (newNode as ParentNode).childNodes
+  for(let index = 0; index < oldChildren.length; index++) {
+    patchInto(oldChildren[index]!, newChildren[index]!)
+  }
+}
+
+/**
+ * Copies a freshly rendered row onto the existing row node when both trees
+ * are structurally identical and free of listeners / reactive bindings.
+ * Returns false when the caller must fall back to replacing the node.
+ */
+const tryPatchRow = (currentNode: Node, rendered: Node): boolean => {
+  try {
+    if(hasBoundSubtree(currentNode) || hasBoundSubtree(rendered)) {
+      return false
+    }
+    if(!sameShape(currentNode, rendered)) {
+      return false
+    }
+    patchInto(currentNode, rendered)
+    return true
+  } catch {
+    return false
+  }
+}
+
 function createRow<T>(
   controller: EachController<T>,
   item: T,
@@ -169,13 +246,18 @@ function createRow<T>(
     }
 
     if(rendered !== node && rendered !== null && typeof rendered === "object") {
-      const parent = anchor.parentNode
       const current = node as Node
-      if(parent) {
-        parent.insertBefore(rendered as Node, current)
-        parent.removeChild(current)
+      // When old and new roots share the same shape and carry no event or
+      // signal bindings, copy attributes and text onto the existing node:
+      // fewer allocations and no DOM remove/insert churn.
+      if(!tryPatchRow(current, rendered as Node)) {
+        const parent = anchor.parentNode
+        if(parent) {
+          parent.insertBefore(rendered as Node, current)
+          parent.removeChild(current)
+        }
+        runCleanupsFor(current)
       }
-      runCleanupsFor(current)
       node = rendered as Node
     }
   })

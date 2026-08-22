@@ -91,6 +91,10 @@ export class ShimElement {
     return this.attributes.get(name) ?? null
   }
 
+  getAttributeNames(): Array<string> {
+    return [...this.attributes.keys()]
+  }
+
   removeAttribute(name: string): void {
     this.attributes.delete(name)
   }
@@ -130,7 +134,6 @@ export class ShimElement {
       node.childNodes = []
       return children[0] ?? node
     }
-    const referenceIndex = reference === null ? -1 : this.childNodes.indexOf(reference)
     const currentIndex = this.childNodes.indexOf(node)
     if(currentIndex >= 0) {
       this.childNodes.splice(currentIndex, 1)

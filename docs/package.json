@@ -1,0 +1,10 @@
+{
+  "name": "ruri-docs",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "dev": "node serve.mjs"
+  }
+}
