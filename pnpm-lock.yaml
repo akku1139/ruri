@@ -20,6 +20,9 @@ importers:
       '@webref/events':
         specifier: ^1.24.2
         version: 1.24.2
+      happy-dom:
+        specifier: ^20.11.6
+        version: 20.11.6
       typescript:
         specifier: ^7.0.2
         version: 7.0.2

@@ -1,6 +1,6 @@
 import { EachFragment, initializeRows, subscribeReconciliation } from "./each.ts"
 import { hydrationState } from "./internal/hydrationState.ts"
-import { Signal } from "./signal.ts"
+import type { Signal, SignalLike } from "./types.ts"
 import { HYDRATION_MARKER, ServerComment, ServerElement, ServerFragment } from "./server/element.ts"
 import {
   HydrationMismatchError,
@@ -12,6 +12,10 @@ import { runCleanups, registerCleanup } from "./utils/cleanup.ts"
 export const render = (container: ParentNode, node: Node): void => {
   container.append(node)
 }
+
+const isSignalLikeValue = (value: unknown): value is SignalLike<unknown> =>
+    value !== null && typeof value === "object"
+    && "peek" in value && "subscribe" in value && "value" in value
 
 const isWhitespaceOnly = (node: Node): boolean =>
   node.nodeType === 3 && (node as Text).data.replaceAll(/\s/g, "").length === 0
@@ -197,12 +201,19 @@ const adoptEachList = (
 
 const transplantElement = (real: Element, server: ServerElement): void => {
   for(const [name, value] of server.hydrationProps ?? []) {
-    if(value instanceof Signal) {
-      bindAttributeSignal(real as never, name, value)
+    if(typeof value === "function") {
+      if(name === "ref") {
+        (value as (element: Element) => void)(real)
+      } else if(/^on[a-z]+$/.test(name)) {
+        (real as unknown as HTMLElement).addEventListener(name.slice(2).toLowerCase(), value as EventListener)
+      }
       continue
     }
-    if(typeof value === "function") {
-      ;(real as unknown as HTMLElement).addEventListener(name.slice(2).toLowerCase(), value as EventListener)
+    if(name === "innerHTML") {
+      continue
+    }
+    if(isSignalLikeValue(value)) {
+      bindAttributeSignal(real as never, name, value)
       continue
     }
     applyAttribute(real as never, name, value)

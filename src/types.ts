@@ -7,6 +7,7 @@ import type {
   GeneratedSvgElementAttributes,
 } from "./generated/elementTypes.ts"
 import type { Signal } from "./signal.ts"
+export type { Signal }
 
 export type Subscriber = () => void
 export type Equals<T> = (before: T, after: T) => boolean
@@ -31,15 +32,32 @@ type UTF8 = "utf-8" | "UTF-8" // ASCII case-insensitive match for "UTF-8".
 type CustomProperties = { [K: `--${string}`]: string }
 type StyleValue = string | (Partial<CSSStyleDeclaration> & CustomProperties)
 
+/** Conditional class syntax: truthy keys are included. */
+type ClassList = Record<string, unknown>
+
+/** Imperative hook receiving the live element right after creation. */
+type ElementRef<T> = (element: T) => void
+
 // ---------- Utils ----------
 
 type MakeUnionsArray<T extends object> = {
   [K in keyof T]: Array<T[K]>
 }
 
+/**
+ * Minimal reactive contract accepted for attribute bindings - structural so
+ * narrower `Signal<T>` instances stay assignable despite class invariance.
+ */
+export interface SignalLike<T> {
+  readonly value: T
+  peek(): T
+  subscribe(subscriber: () => void): void
+  unsubscribe(subscriber: () => void): boolean
+}
+
 /** Allow each attribute value to be passed as a reactive {@link Signal} or `null` (removes the attribute). */
 type Reactive<T extends object> = {
-  [K in keyof T]?: Required<T>[K] | Signal<Required<T>[K]> | null
+  [K in keyof T]?: Required<T>[K] | SignalLike<Required<T>[K]> | null
 }
 
 // ---------- HTML ----------
@@ -95,7 +113,7 @@ type MediaQuery = string
 // https://html.spec.whatwg.org/multipage/dom.html#global-attributes
 type HTMLElementGlobalAttributes = {
   id: string
-  class: string | Array<string> // TODO: allow Signal per item
+  class: ClassList | string | Array<string>
 
   accesskey: string // TODO: Enumerate all keys?
   // anchor: string // Non-standard https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/anchor
@@ -695,3 +713,9 @@ export type ElementAttributes<T extends keyof AllElementTagNameMap> =
   & EventHandlers
   & DataAttributes
   & AriaAttributes
+  & {
+    /** Callback invoked with the created element (client) or replayed during hydration. */
+    ref?: ElementRef<AllElementTagNameMap[T]>
+    /** Escape hatch: sets the element's innerHTML verbatim. */
+    innerHTML?: string
+  }

@@ -2,8 +2,8 @@ import { mountEachAnchor } from "./each.ts"
 import { AMBIGUOUS_ELEMENT_NAMES, MATHML_ELEMENT_NAMES, SVG_ELEMENT_NAMES } from "./generated/namespaces.ts"
 import { hydrationState } from "./internal/hydrationState.ts"
 import { Signal } from "./signal.ts"
-import { HYDRATION_MARKER, ServerComment, ServerElement, ServerFragment } from "./server/element.ts"
-import type { AllElementTagNameMap, Child, Children, ElementAttributes } from "./types.ts"
+import { HYDRATION_MARKER, ServerComment, ServerElement, ServerFragment, ServerRaw } from "./server/element.ts"
+import type { AllElementTagNameMap, Child, Children, ElementAttributes, SignalLike } from "./types.ts"
 import { registerCleanup } from "./utils/cleanup.ts"
 import { styleObjectToString } from "./utils/style.ts"
 
@@ -26,6 +26,7 @@ export class HydrationMismatchError extends Error {
  * transplants those bindings onto the real server-rendered DOM.
  */
 type AnyElement = HTMLElement | SVGElement | MathMLElement
+type ElementRefLike = (element: AnyElement) => void
 
 const resolveNamespace = (tagName: string, xmlns: unknown): string => {
   if(xmlns === SVG_NAMESPACE || (SVG_ELEMENT_NAMES.has(tagName) && !AMBIGUOUS_ELEMENT_NAMES.has(tagName))) {
@@ -64,10 +65,47 @@ const stringifyChild = (value: unknown): string => {
   }
 }
 
+const classValueToString = (value: unknown): string => {
+  if(value === null || value === undefined || value === false || value === "") {
+    return ""
+  }
+  if(typeof value === "string") {
+    return value
+  }
+  if(Array.isArray(value)) {
+    return value.map((item) => String(item)).join(" ")
+  }
+  if(value !== null && typeof value === "object") {
+    return Object.entries(value as Record<string, unknown>)
+        .filter(([, enabled]) => enabled !== false && enabled !== null && enabled !== undefined && enabled !== "")
+        .map(([name]) => name)
+        .join(" ")
+  }
+  return stringifyChild(value)
+}
+
 const isSkippedChild = (child: Child): child is null | undefined | boolean =>
   child === null || child === undefined || typeof child === "boolean"
 
+const isSignalLike = (value: unknown): value is SignalLike<unknown> =>
+  value !== null && typeof value === "object"
+  && "peek" in value && "subscribe" in value && "value" in value
+
 export const applyAttribute = (element: AnyElement, name: string, value: unknown): void => {
+  if(name === "class") {
+    const classes = classValueToString(value)
+    if(classes) {
+      element.setAttribute("class", classes)
+    } else {
+      element.removeAttribute("class")
+    }
+    return
+  }
+  if(name === "innerHTML") {
+    element.innerHTML = stringifyChild(value)
+    markBound(element)
+    return
+  }
   if(value === null || value === undefined || value === false) {
     element.removeAttribute(name)
     return
@@ -127,7 +165,7 @@ export const hasBoundSubtree = (root: Node): boolean => {
   return false
 }
 
-export const bindAttributeSignal = (element: AnyElement, name: string, signal: Signal<unknown>): void => {
+export const bindAttributeSignal = (element: AnyElement, name: string, signal: SignalLike<unknown>): void => {
   markBound(element)
   applyAttribute(element, name, signal.peek())
   const update = (): void => {
@@ -147,7 +185,7 @@ const appendChild = (parent: Node & ParentNode, child: Child): void => {
     appendChildren(parent, child)
     return
   }
-  if(child instanceof Signal) {
+  if(isSignalLike(child)) {
     const text = document.createTextNode(stringifyChild(child.peek()))
     const update = (): void => {
       text.data = stringifyChild(child.peek())
@@ -194,7 +232,10 @@ function applyProps(
       continue
     }
     if(typeof value === "function") {
-      if(EVENT_ATTRIBUTE_PATTERN.test(name)) {
+      if(name === "ref") {
+        (value as ElementRefLike)(element)
+        markBound(element)
+      } else if(EVENT_ATTRIBUTE_PATTERN.test(name)) {
         element.addEventListener(name.slice(2).toLowerCase(), value as EventListener)
         markBound(element)
       } else {
@@ -202,7 +243,7 @@ function applyProps(
       }
       continue
     }
-    if(value instanceof Signal) {
+    if(isSignalLike(value)) {
       bindAttributeSignal(element, name, value)
       continue
     }
@@ -226,6 +267,13 @@ const buildClientElement = (
 }
 
 const applyServerAttribute = (element: ServerElement, name: string, value: unknown): void => {
+  if(name === "class") {
+    const classes = classValueToString(value)
+    if(classes) {
+      element.setAttribute("class", classes)
+    }
+    return
+  }
   if(value === null || value === undefined || value === false) {
     return
   }
@@ -298,10 +346,17 @@ const buildServerElement = (
     if(hydrating) {
       (element.hydrationProps ??= []).push([name, value])
     }
+    if(name === "ref") {
+      continue
+    }
+    if(name === "innerHTML" && typeof value === "string") {
+      element.append(new ServerRaw(value))
+      continue
+    }
     if(typeof value === "function") {
       continue
     }
-    if(value instanceof Signal) {
+    if(isSignalLike(value)) {
       applyServerAttribute(element, name, value.peek())
       continue
     }

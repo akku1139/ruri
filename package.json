@@ -18,7 +18,7 @@
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
     "test": "pnpm run typecheck && pnpm run test:basic",
-    "test:basic": "node --test \"test/*.test.ts\"",
+    "test:basic": "node --test \"test/*.test.ts\" && node bench/docs-smoke.mjs && node bench/dom-features-check.mjs",
     "typecheck": "tsc --noEmit",
     "example:client": "pnpm run build && node examples/client/server.js",
     "example:fullstack": "pnpm run build && node examples/fullstack/server.js",
@@ -45,6 +45,7 @@
     "@types/node": "^26.0.0",
     "@webref/elements": "^2.7.1",
     "@webref/events": "^1.24.2",
+    "happy-dom": "^20.11.6",
     "typescript": "^7.0.2"
   }
 }
