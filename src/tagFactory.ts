@@ -25,8 +25,6 @@ export class HydrationMismatchError extends Error {
  * event handlers and signals) and every reactive text slot. render.ts then
  * transplants those bindings onto the real server-rendered DOM.
  */
-const isHydrating = (): boolean => hydrationState.depth > 0
-
 type AnyElement = HTMLElement | SVGElement | MathMLElement
 
 const resolveNamespace = (tagName: string, xmlns: unknown): string => {
@@ -72,6 +70,10 @@ export const applyAttribute = (element: AnyElement, name: string, value: unknown
   }
   if(value === true) {
     element.setAttribute(name, "")
+    return
+  }
+  if(typeof value === "string") {
+    element.setAttribute(name, value)
     return
   }
   if(Array.isArray(value)) {
@@ -130,18 +132,32 @@ const appendChild = (parent: Node & ParentNode, child: Child): void => {
  * signals become self-updating text nodes.
  */
 export const appendChildren = (parent: Node & ParentNode, children: Children): void => {
-  for(const child of children) {
-    appendChild(parent, child)
+  for(let index = 0; index < children.length; index++) {
+    const child = children[index]
+    // Fast path: plain strings are by far the most common child kind.
+    if(typeof child === "string") {
+      parent.append(child)
+      continue
+    }
+    appendChild(parent, child!)
   }
 }
 
-const applyProps = (element: AnyElement, props: Record<string, unknown>): void => {
-  for(const [name, value] of Object.entries(props)) {
+function applyProps(
+  element: AnyElement,
+  props: Record<string, unknown>,
+): void {
+  for(const name in props) {
+    const value = props[name]
     if(value === undefined) {
       continue
     }
-    if(EVENT_ATTRIBUTE_PATTERN.test(name) && typeof value === "function") {
-      element.addEventListener(name.slice(2).toLowerCase(), value as EventListener)
+    if(typeof value === "function") {
+      if(EVENT_ATTRIBUTE_PATTERN.test(name)) {
+        element.addEventListener(name.slice(2).toLowerCase(), value as EventListener)
+      } else {
+        applyAttribute(element, name, value)
+      }
       continue
     }
     if(value instanceof Signal) {
@@ -253,7 +269,7 @@ type TagArguments<T extends keyof AllElementTagNameMap> =
   [props: ElementAttributes<T>, ...children: Children]
   | Children
 
-const hasPropsArgument = (firstArgument: unknown): boolean =>
+const looksLikeProps = (firstArgument: unknown): boolean =>
   typeof firstArgument === "object"
   && firstArgument !== null
   && !Array.isArray(firstArgument)
@@ -261,16 +277,22 @@ const hasPropsArgument = (firstArgument: unknown): boolean =>
   && !("nodeType" in firstArgument)
   && !("serialize" in firstArgument)
 
-export const tagFactory = <T extends keyof AllElementTagNameMap>(tagName: T): Tag<T> =>
-  (...args: TagArguments<T>): AllElementTagNameMap[T] => {
+const EMPTY_PROPS: Record<string, unknown> = {}
+
+export const tagFactory = <T extends keyof AllElementTagNameMap>(tagName: T): Tag<T> => {
+  const tagNameString = String(tagName)
+
+  return (...args: TagArguments<T>): AllElementTagNameMap[T] => {
     const firstArgument = args[0]
-    const props = (hasPropsArgument(firstArgument) ? firstArgument : {}) as Record<string, unknown>
-    const children = (hasPropsArgument(firstArgument) ? args.slice(1) : args) as Children
+    const hasProps = looksLikeProps(firstArgument)
+    const props = (hasProps ? firstArgument : EMPTY_PROPS) as Record<string, unknown>
+    const children = (hasProps ? args.slice(1) : args) as Children
 
-    const namespace = resolveNamespace(String(tagName), props.xmlns)
+    const namespace = resolveNamespace(tagNameString, props.xmlns)
 
-    if(typeof document === "undefined" || isHydrating()) {
-      return buildServerElement(String(tagName), namespace, props, children) as unknown as AllElementTagNameMap[T]
+    if(typeof document === "undefined" || hydrationState.depth > 0) {
+      return buildServerElement(tagNameString, namespace, props, children) as unknown as AllElementTagNameMap[T]
     }
-    return buildClientElement(String(tagName), namespace, props, children) as unknown as AllElementTagNameMap[T]
+    return buildClientElement(tagNameString, namespace, props, children) as unknown as AllElementTagNameMap[T]
   }
+}
