@@ -56,6 +56,6 @@ jobs:
             echo "**Commit:** [\`${GITHUB_SHA::7}\`](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) · runner: ubuntu-latest"
             echo "_Timings on shared CI hardware are noisy - compare medians across runs with care._"
             echo
-            cat ../bench-results.md
+            cat bench-results.md
           } > comment.md
           gh issue comment "$ISSUE" --body-file comment.md
