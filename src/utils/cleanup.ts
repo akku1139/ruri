@@ -25,8 +25,7 @@ const collectDescendants = (root: ParentNode): Array<object> => {
   return found
 }
 
-export const runCleanups = (root: ParentNode): void => {
-  const targets: Array<object> = [root, ...collectDescendants(root)]
+const runAll = (targets: Array<object>): void => {
   for(const target of targets) {
     const targetCleanups = cleanups.get(target)
     if(!targetCleanups) {
@@ -37,4 +36,13 @@ export const runCleanups = (root: ParentNode): void => {
       cleanup()
     }
   }
+}
+
+export const runCleanups = (root: ParentNode): void => {
+  runAll([root, ...collectDescendants(root)])
+}
+
+/** Runs cleanups registered on a single (detached) subtree. */
+export const runCleanupsFor = (root: object): void => {
+  runAll([root, ...collectDescendants(root as ParentNode)])
 }

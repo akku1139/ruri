@@ -1,8 +1,8 @@
 import { hydrationState } from "./internal/hydrationState.ts"
-import { Signal } from "./signal.ts"
+import { Signal, effect } from "./signal.ts"
 import { ServerFragment } from "./server/element.ts"
 import type { Child } from "./types.ts"
-import { registerCleanup } from "./utils/cleanup.ts"
+import { registerCleanup, runCleanupsFor } from "./utils/cleanup.ts"
 
 const EACH_ANCHOR_DATA = "ruri:each"
 
@@ -18,13 +18,16 @@ export interface EachController<T> {
   items: Signal<readonly T[]>
   render: (item: T, index: Signal<number>) => Child
   options: EachOptions<T>
-  rows: Array<Row>
+  rows: Array<Row<T>>
 }
 
-interface Row {
-  key: unknown
+interface Row<T> {
+  readonly key: unknown
   node: Node
-  index: Signal<number>
+  readonly index: Signal<number>
+  /** The latest item for this key; replacing it re-renders only this row. */
+  readonly source: Signal<T>
+  dispose(): void
 }
 
 const autoKeys = new WeakMap<object, unknown>()
@@ -53,8 +56,12 @@ const keyOf = <T>(controller: EachController<T>, item: T): unknown => {
  * ```
  *
  * When the items signal changes, existing rows keep their DOM nodes and are
- * moved / updated / removed by key instead of being rebuilt. The render
- * function must return a single node (the row root).
+ * moved / updated / removed by key instead of being rebuilt.
+ *
+ * Every row owns a per-item signal: when an item object is replaced for an
+ * existing key, only that row re-renders (its root node is swapped in place),
+ * all other rows are left untouched. The render function must return a single
+ * node (the row root).
  */
 export const each = <T>(
   items: Signal<readonly T[]>,
@@ -66,8 +73,7 @@ export const each = <T>(
   if(typeof document === "undefined" || hydrationState.depth > 0) {
     const fragment = new EachFragment(controller)
     for(const [index, item] of items.peek().entries()) {
-      const indexSignal = new Signal<number>(index)
-      fragment.append(renderRow(controller, item, indexSignal, true) as unknown as string)
+      fragment.append(createRow(controller, item, index, { serverMode: true }).node as unknown as string)
     }
     return fragment as unknown as Node
   }
@@ -102,13 +108,14 @@ export const mountEachAnchor = (child: unknown): void => {
 export const isEachFragment = (node: unknown): node is EachFragment<never> =>
   node instanceof EachFragment
 
-/** Builds rows referencing already-rendered nodes (used by hydration). */
-export const initializeRows = <T>(controller: EachController<T>, nodes: Array<Node>): void => {
-  controller.rows = controller.items.peek().map((item, index) => ({
-    key: keyOf(controller, item),
-    node: nodes[index]!,
-    index: new Signal<number>(index),
-  }))
+/** Builds live rows referencing already-rendered nodes (used by hydration). */
+export const initializeRows = <T>(
+  anchor: Comment,
+  controller: EachController<T>,
+  nodes: Array<Node>,
+): void => {
+  controller.rows = controller.items.peek().map((item, index) =>
+      createRow(controller, item, index, { anchor, initialNode: nodes[index] }))
 }
 
 export const subscribeReconciliation = <T>(anchor: Comment, controller: EachController<T>): void => {
@@ -121,12 +128,83 @@ export const subscribeReconciliation = <T>(anchor: Comment, controller: EachCont
   })
 }
 
+function createRow<T>(
+  controller: EachController<T>,
+  item: T,
+  index: number,
+  options: { serverMode?: boolean; anchor?: Comment; initialNode?: Node },
+): Row<T> {
+  const source = new Signal<T>(item)
+  const indexSignal = new Signal<number>(index)
+
+  if(options.serverMode) {
+    const staticNode = renderRow(controller.render, source.peek(), indexSignal, true) as Node
+    return {
+      key: keyOf(controller, item),
+      node: staticNode,
+      index: indexSignal,
+      source,
+      dispose: (): void => {},
+    }
+  }
+
+  const anchor = options.anchor!
+  let node: Node | null = options.initialNode ?? null
+  let firstRun = true
+
+  const disposeEffect = effect((): void => {
+    // Reading source.value here keeps the row subscribed: replacing an item
+    // object for this key re-runs only this effect.
+    const currentItem = source.value
+    const rendered = renderRow(controller.render, currentItem, indexSignal, false)
+
+    if(firstRun) {
+      firstRun = false
+      if(node === null) {
+        node = rendered as Node
+        return
+      }
+      runCleanupsFor(rendered as object)
+      return
+    }
+
+    if(rendered !== node && rendered !== null && typeof rendered === "object") {
+      const parent = anchor.parentNode
+      if(parent) {
+        parent.insertBefore(rendered as Node, node as Node)
+        parent.removeChild(node as Node)
+      }
+      runCleanupsFor(node as object)
+      node = rendered
+    }
+  })
+
+  const row: Row<T> = {
+    key: keyOf(controller, item),
+    get node(): Node {
+      return node!
+    },
+    set node(value: Node) {
+      node = value
+    },
+    index: indexSignal,
+    source,
+    dispose: (): void => {
+      disposeEffect()
+      if(node !== null) {
+        runCleanupsFor(node)
+      }
+    },
+  }
+  return row
+}
+
 const reconcile = <T>(anchor: Comment, controller: EachController<T>): void => {
   const parent = anchor.parentNode
   const nextItems = controller.items.peek()
 
   const remaining = new Map(controller.rows.map((row) => [row.key, row]))
-  const nextRows: Array<Row> = []
+  const nextRows: Array<Row<T>> = []
 
   for(let index = 0; index < nextItems.length; index++) {
     const item = nextItems[index] as T
@@ -135,17 +213,14 @@ const reconcile = <T>(anchor: Comment, controller: EachController<T>): void => {
     if(existing) {
       remaining.delete(key)
       nextRows.push(existing)
+        existing.source.value = item
       continue
     }
-    const indexSignal = new Signal<number>(index)
-    nextRows.push({
-      key,
-      node: renderRow(controller, item, indexSignal, false) as Node,
-      index: indexSignal,
-    })
+    nextRows.push(createRow(controller, item, index, { anchor }))
   }
 
   for(const [, row] of remaining) {
+    row.dispose()
     row.node.parentNode?.removeChild(row.node)
   }
 
@@ -168,12 +243,12 @@ const reconcile = <T>(anchor: Comment, controller: EachController<T>): void => {
 }
 
 const renderRow = <T>(
-  controller: EachController<T>,
+  render: (item: T, index: Signal<number>) => Child,
   item: T,
   indexSignal: Signal<number>,
   serverMode: boolean,
 ): unknown => {
-  const rendered = controller.render(item, indexSignal)
+  const rendered = render(item, indexSignal)
   if(rendered === null || rendered === undefined || typeof rendered === "boolean") {
     throw new TypeError("each() render must return a single element")
   }
@@ -183,5 +258,5 @@ const renderRow = <T>(
     }
     return document.createTextNode(String(rendered))
   }
-  return rendered as unknown as Node
+  return rendered
 }

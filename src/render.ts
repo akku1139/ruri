@@ -189,7 +189,7 @@ const adoptEachList = (
       ?? null
   realParent.insertBefore(anchor, reference)
 
-  initializeRows(fragment.controller, consumed)
+  initializeRows(anchor, fragment.controller, consumed)
   subscribeReconciliation(anchor, fragment.controller)
 }
 

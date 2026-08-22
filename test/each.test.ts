@@ -97,10 +97,9 @@ test("hydration adopts each rows and reconciles afterwards", async () => {
   const { installDom, uninstallDom } = await import("./dom-shim.ts")
   const { parseHtml, firstElementChild } = await import("./parse-html.ts")
 
-  const items = new Signal<readonly Todo[]>([
-    { id: 1, text: "one" },
-    { id: 2, text: "two" },
-  ])
+  const first: Todo = { id: 1, text: "one" }
+  const second: Todo = { id: 2, text: "two" }
+  const items = new Signal<readonly Todo[]>([first, second])
   const App = (): HTMLElement =>
     tags.ul({ id: "list" }, each(
       items,
@@ -125,7 +124,20 @@ test("hydration adopts each rows and reconciles afterwards", async () => {
   const currentRows = elementChildren(serverUl)
   assert.equal(currentRows[0], serverRows[0], "rows are adopted, not rebuilt")
 
-  items.value = [{ id: 2, text: "two" }, { id: 1, text: "one" }, { id: 3, text: "three" }]
+  items.value = [second, first, { id: 3, text: "three" }]
   assert.deepEqual(rowIds(serverUl), ["2", "1", "3"])
   assert.equal(elementChildren(serverUl)[1], serverRows[0], "reorder moves adopted nodes")
+})
+
+test("replacing an item object re-renders only that row", () => {
+  const first = { id: 1, text: "one" }
+  const second = { id: 2, text: "two" }
+  const { items, shim } = setup([first, second])
+
+  const [rowOne, rowTwo] = elementChildren(shim)
+  items.value = [{ id: 1, text: "ONE!" }, second]
+
+  assert.deepEqual(rowTexts(shim), ["ONE!", "two"])
+  assert.notEqual(elementChildren(shim)[0], rowOne, "the updated row is re-rendered")
+  assert.equal(elementChildren(shim)[1], rowTwo, "untouched rows keep their DOM nodes")
 })
