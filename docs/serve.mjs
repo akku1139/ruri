@@ -36,7 +36,7 @@ const readPage = async (slug) => {
 
 const pageFor = (slug, markdownText) => ({
   slug,
-  title: /^#\s+(.*)$/.exec(markdownText)?.[1] ?? slug,
+  title: /^#\s+(.*)$/m.exec(markdownText)?.[1] ?? slug,
   markdown: markdownText,
 })
 

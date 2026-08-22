@@ -8,7 +8,9 @@ pnpm add ruri
 
 ## Your first component
 
-```js
+This sample is live - the button really works:
+
+```ruri
 import { tags, Signal } from "ruri"
 
 const { div, button, ul, li } = tags
@@ -19,8 +21,12 @@ const app = div({},
     button({ onclick: () => count.value++ }, "+1"),
 )
 
-document.body.append(app)
+output.append(app)
 ```
+
+Playground blocks are fenced with ```ruri`: the docs client rewrites the
+import to the bundled framework and runs the code against an `output`
+element rendered below the listing.
 
 - `tags` is a typed proxy for every HTML, SVG and MathML element
 - props are plain objects; `onclick` becomes an event listener

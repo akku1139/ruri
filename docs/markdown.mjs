@@ -40,6 +40,8 @@ const renderInline = (text) => {
 
 const HEADINGS = { 1: h1, 2: h2, 3: h3, 4: h4 }
 
+let playgroundCounter = 0
+
 const splitTableRow = (line) =>
     line.replace(/^\||\|$/g, "").split("|").map((cell) => cell.trim())
 
@@ -55,8 +57,26 @@ function* parseBlocks(lines) {
 
     const heading = /^(#{1,4})\s+(.*)$/.exec(line)
     if(heading) {
-      yield HEADINGS[heading[1].length]({}, renderInline(heading[2].trim()))
+      const text = heading[2].trim()
+      yield HEADINGS[heading[1].length]({ id: slugify(text) }, renderInline(text))
       index++
+      continue
+    }
+
+    if(line.startsWith("```ruri")) {
+      const body = []
+      index++
+      while(index < lines.length && !lines[index].startsWith("```")) {
+        body.push(lines[index])
+        index++
+      }
+      index++
+      playgroundCounter++
+      yield div({ class: "playground" },
+          pre({ class: "pg-code" }, body.join("\n")),
+          div({ class: "pg-view", id: `pg-view-${playgroundCounter}` },
+              span({ class: "pg-hint" }, "running...")),
+      )
       continue
     }
 
@@ -137,7 +157,10 @@ function* parseBlocks(lines) {
 }
 
 /** Renders markdown text to an array of ruri block elements. */
-export const renderMarkdown = (markdown) => [...parseBlocks(markdown.split("\n"))]
+export const renderMarkdown = (markdown) => {
+  playgroundCounter = 0
+  return [...parseBlocks(markdown.split("\n"))]
+}
 
 export const slugify = (heading) =>
     heading.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")

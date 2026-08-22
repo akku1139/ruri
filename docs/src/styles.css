@@ -14,7 +14,7 @@ body {
   font: 16px/1.7 system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 .layout { display: flex; max-width: 1080px; margin: 0 auto; padding: 32px 16px; gap: 40px; }
-.sidebar { width: 200px; flex-shrink: 0; }
+.sidebar { width: 200px; flex-shrink: 0; position: sticky; top: 32px; align-self: flex-start; max-height: calc(100vh - 64px); overflow-y: auto; }
 .brand { font-size: 22px; font-weight: 700; color: var(--text); text-decoration: none; }
 .nav { display: grid; gap: 4px; margin-top: 20px; }
 .nav a { color: var(--muted); text-decoration: none; padding: 4px 8px; border-radius: 6px; }
@@ -36,8 +36,15 @@ body {
 .content th, .content td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; }
 .content blockquote { border-left: 3px solid var(--accent); margin: 0; padding: 4px 16px; color: var(--muted); }
 .content a { color: var(--accent); }
-.toc { width: 180px; flex-shrink: 0; position: sticky; top: 32px; align-self: flex-start; display: grid; gap: 6px; }
+.toc { width: 180px; flex-shrink: 0; position: sticky; top: 32px; align-self: flex-start; display: grid; gap: 6px; max-height: calc(100vh - 64px); overflow-y: auto; }
 .toc-title { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
 .toc-item { color: var(--muted); font-size: 13px; }
 footer { text-align: center; color: var(--muted); font-size: 13px; padding: 24px; }
 .meta { color: var(--muted); font-size: 13px; margin-top: 32px; }
+
+/* playgrounds */
+.playground { border: 1px solid var(--border); border-radius: 10px; margin: 16px 0; overflow: hidden; background: var(--bg); }
+.playground .pg-code { display: block; background: var(--surface); border: none; border-radius: 0; margin: 0; border-bottom: 1px solid var(--border); }
+.pg-view { padding: 14px 16px; min-height: 20px; }
+.pg-hint { color: var(--muted); font-size: 13px; }
+.main { display: flex; gap: 40px; flex: 1; min-width: 0; }

@@ -44,3 +44,16 @@ batch(() => {
 
 untrack(() => someSignal.value) // read without creating a dependency
 ```
+
+## Live example
+
+```ruri
+import { derived, effect, Signal, tags } from "ruri"
+
+const { div, input, strong } = tags
+const name = new Signal("world")
+const shout = derived(() => name.value.toUpperCase())
+
+const input_ = input({ value: name.peek(), oninput: (event) => { name.value = event.target.value } })
+output.append(div({}, "hello, ", input_, "! ", strong({}, shout)))
+```
