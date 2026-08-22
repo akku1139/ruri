@@ -19,6 +19,7 @@ export const PAGES = [
   { slug: "lists", title: "Lists" },
   { slug: "server", title: "Server & streaming" },
   { slug: "styling", title: "Styling" },
+  { slug: "utilities", title: "Utilities" },
 ]
 
 export const chunkPath = (slug) => `chunks/${slug}.json`

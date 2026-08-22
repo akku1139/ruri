@@ -87,4 +87,5 @@ transform; tracked as future work.
 # Ideas
 
 - Reactive item proxies for per-property updates inside each() rows
+  (partially covered by `createStore`)
 
