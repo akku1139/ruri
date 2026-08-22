@@ -3,7 +3,7 @@ import { renderToString, ServerRaw } from "../dist/server/index.js"
 import { tags } from "../dist/index.js"
 import { slugify } from "./markdown.mjs"
 
-const { a, aside, body, div, footer, head, html, main, meta, nav, span, title, link, script } = tags
+const { a, aside, body, div, footer, head, html, main, meta, nav, span, link, script, title: titleTag } = tags
 
 const IMPORT_MAP = JSON.stringify({
   imports: {
@@ -43,7 +43,7 @@ const toc = (headings) =>
         headings.map((heading) => a({ class: "toc-item", href: `#${slugify(heading)}` }, heading)),
     )
 
-const documentHtml = ({ pageTitle, headings, contentHtml, activeSlug }) => {
+const documentHtml = ({ title, headings, contentHtml, activeSlug }) => {
   const prefetch = activeSlug === "index"
       ? PAGES.map((page) => link({ rel: "prefetch", href: chunkPath(page.slug) }))
       : [link({ rel: "prefetch", href: chunkPath("index") })]
@@ -53,7 +53,7 @@ const documentHtml = ({ pageTitle, headings, contentHtml, activeSlug }) => {
           head({},
               meta({ charset: "utf-8" }),
               meta({ name: "viewport", content: "width=device-width, initial-scale=1" }),
-              title({}, `${pageTitle} · ruri`),
+              titleTag({}, `${title} · ruri`),
               script({ type: "importmap" }, IMPORT_MAP),
               ...prefetch,
               link({ rel: "stylesheet", href: "styles.css" }),
