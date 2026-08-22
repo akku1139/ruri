@@ -18,7 +18,7 @@
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
     "test": "pnpm run typecheck && pnpm run test:basic",
-    "test:basic": "node --test \"test/*.test.ts\" && node bench/docs-smoke.mjs && node bench/dom-features-check.mjs",
+    "test:basic": "pnpm build && pnpm -C docs run build && node --test \"test/*.test.ts\" && node bench/docs-smoke.mjs && node bench/dom-features-check.mjs",
     "typecheck": "tsc --noEmit",
     "example:client": "pnpm run build && node examples/client/server.js",
     "example:fullstack": "pnpm run build && node examples/fullstack/server.js",
