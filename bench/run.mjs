@@ -16,16 +16,19 @@ const runScenario = ([name, url]) =>
         stdout += chunk
       })
       child.on("close", () => {
-        const line = stdout.split("\n").find((line) => line.startsWith("RESULT "))
-        if(!line) {
-          resolve({ suite: name, results: [], failed: true })
-          return
+        const suites = stdout.split("\n")
+            .filter((line) => line.startsWith("RESULT "))
+            .map((line) => {
+              try {
+                return JSON.parse(line.slice("RESULT ".length))
+              } catch {
+                return { suite: name, results: [], failed: true }
+              }
+            })
+        if(suites.length === 0) {
+          suites.push({ suite: name, results: [], failed: true })
         }
-        try {
-          resolve(JSON.parse(line.slice("RESULT ".length)))
-        } catch {
-          resolve({ suite: name, results: [], failed: true })
-        }
+        resolve(suites)
       })
       child.on("error", () => resolve({ suite: name, results: [], failed: true }))
     })
@@ -33,7 +36,7 @@ const runScenario = ([name, url]) =>
 const suites = []
 for(const scenario of SCENARIOS) {
   console.error(`running ${scenario[0]}...`)
-  suites.push(await runScenario(scenario))
+  suites.push(...await runScenario(scenario))
 }
 
 let markdown = ""
