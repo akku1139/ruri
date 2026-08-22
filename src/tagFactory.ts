@@ -1,3 +1,4 @@
+import { AMBIGUOUS_ELEMENT_NAMES, MATHML_ELEMENT_NAMES, SVG_ELEMENT_NAMES } from "./generated/namespaces.ts"
 import { Signal } from "./signal.ts"
 import { ServerElement, ServerFragment } from "./server/element.ts"
 import type { AllElementTagNameMap, Child, Children, ElementAttributes } from "./types.ts"
@@ -8,38 +9,13 @@ const HTML_NAMESPACE = "http://www.w3.org/1999/xhtml"
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg"
 const MATHML_NAMESPACE = "http://www.w3.org/1998/Math/MathML"
 
-// https://developer.mozilla.org/en-US/docs/Web/SVG/Element
-const SVG_ELEMENTS = new Set([
-  "svg", "g", "defs", "symbol", "use", "circle", "ellipse", "line", "polygon",
-  "polyline", "rect", "path", "text", "tspan", "textPath", "marker", "clipPath",
-  "mask", "pattern", "linearGradient", "radialGradient", "stop", "image",
-  "foreignObject", "filter", "feGaussianBlur", "feBlend", "feColorMatrix",
-  "feComponentTransfer", "feComposite", "feConvolveMatrix", "feDiffuseLighting",
-  "feDisplacementMap", "feDistantLight", "feDropShadow", "feFlood", "feFuncA",
-  "feFuncB", "feFuncG", "feFuncR", "feImage", "feMerge", "feMergeNode",
-  "feMorphology", "feOffset", "fePointLight", "feSpecularLighting",
-  "feSpotLight", "feTile", "feTurbulence", "animate", "animateMotion",
-  "animateTransform", "set", "mpath", "desc", "metadata", "view",
-])
-
-// https://developer.mozilla.org/en-US/docs/Web/MathML/Element
-const MATHML_ELEMENTS = new Set([
-  "math", "mi", "mn", "mo", "ms", "mtext", "mrow", "mfrac", "msqrt", "mroot",
-  "msub", "msup", "msubsup", "munder", "mover", "munderover", "mmultiscripts",
-  "mtable", "mtr", "mtd", "mlabeledtr", "mspace", "mpadded", "mphantom",
-  "mstyle", "merror", "menclose", "maction", "semantics", "annotation",
-  "annotation-xml",
-])
-
-const NAMESPACE_AMBIGUOUS_ELEMENTS = new Set(["a", "script", "style", "title"])
-
 const EVENT_ATTRIBUTE_PATTERN = /^on[a-z]+$/
 
 const resolveNamespace = (tagName: string, xmlns: unknown): string => {
-  if(xmlns === SVG_NAMESPACE || (SVG_ELEMENTS.has(tagName) && !NAMESPACE_AMBIGUOUS_ELEMENTS.has(tagName))) {
+  if(xmlns === SVG_NAMESPACE || (SVG_ELEMENT_NAMES.has(tagName) && !AMBIGUOUS_ELEMENT_NAMES.has(tagName))) {
     return SVG_NAMESPACE
   }
-  if(xmlns === MATHML_NAMESPACE || MATHML_ELEMENTS.has(tagName)) {
+  if(xmlns === MATHML_NAMESPACE || MATHML_ELEMENT_NAMES.has(tagName)) {
     return MATHML_NAMESPACE
   }
   return HTML_NAMESPACE

@@ -1,3 +1,9 @@
+import type {
+  GeneratedElementEventHandlers,
+  GeneratedGlobalAttributes,
+  GeneratedGlobalEventHandlers,
+  GeneratedHtmlElementAttributes,
+} from "./generated/elementTypes.ts"
 import type { Signal } from "./signal.ts"
 
 export type Subscriber = () => void
@@ -31,7 +37,7 @@ type MakeUnionsArray<T extends object> = {
 
 /** Allow each attribute value to be passed as a reactive {@link Signal} or `null` (removes the attribute). */
 type Reactive<T extends object> = {
-  [K in keyof T]?: T[K] | Signal<T[K]> | null
+  [K in keyof T]?: Required<T>[K] | Signal<Required<T>[K]> | null
 }
 
 // ---------- HTML ----------
@@ -131,105 +137,8 @@ type HTMLElementGlobalAttributes = {
 
 // ---------- Events ----------
 
-// TODO: Cover all events defined in https://developer.mozilla.org/en-US/docs/Web/Events
-type CommonEventHandlers = {
-  onabort?: (event: UIEvent) => unknown
-  onanimationcancel?: (event: AnimationEvent) => unknown
-  onanimationend?: (event: AnimationEvent) => unknown
-  onanimationiteration?: (event: AnimationEvent) => unknown
-  onanimationstart?: (event: AnimationEvent) => unknown
-  onauxclick?: (event: MouseEvent) => unknown
-  onblur?: (event: FocusEvent) => unknown
-  oncancel?: (event: Event) => unknown
-  oncanplay?: (event: Event) => unknown
-  oncanplaythrough?: (event: Event) => unknown
-  onchange?: (event: Event) => unknown
-  onclick?: (event: MouseEvent) => unknown
-  onclose?: (event: Event) => unknown
-  oncontextmenu?: (event: MouseEvent) => unknown
-  oncopy?: (event: ClipboardEvent) => unknown
-  oncuechange?: (event: Event) => unknown
-  oncut?: (event: ClipboardEvent) => unknown
-  ondblclick?: (event: MouseEvent) => unknown
-  ondrag?: (event: DragEvent) => unknown
-  ondragend?: (event: DragEvent) => unknown
-  ondragenter?: (event: DragEvent) => unknown
-  ondragleave?: (event: DragEvent) => unknown
-  ondragover?: (event: DragEvent) => unknown
-  ondragstart?: (event: DragEvent) => unknown
-  ondrop?: (event: DragEvent) => unknown
-  ondurationchange?: (event: Event) => unknown
-  onemptied?: (event: Event) => unknown
-  onended?: (event: Event) => unknown
-  onerror?: (event: ErrorEvent) => unknown
-  onfocus?: (event: FocusEvent) => unknown
-  onfocusin?: (event: FocusEvent) => unknown
-  onfocusout?: (event: FocusEvent) => unknown
-  onformdata?: (event: FormDataEvent) => unknown
-  onfullscreenchange?: (event: Event) => unknown
-  ongotpointercapture?: (event: PointerEvent) => unknown
-  oninput?: (event: InputEvent) => unknown
-  oninvalid?: (event: Event) => unknown
-  onkeydown?: (event: KeyboardEvent) => unknown
-  onkeypress?: (event: KeyboardEvent) => unknown
-  onkeyup?: (event: KeyboardEvent) => unknown
-  onload?: (event: Event) => unknown
-  onloadeddata?: (event: Event) => unknown
-  onloadedmetadata?: (event: Event) => unknown
-  onloadstart?: (event: Event) => unknown
-  onlostpointercapture?: (event: PointerEvent) => unknown
-  onmousedown?: (event: MouseEvent) => unknown
-  onmouseenter?: (event: MouseEvent) => unknown
-  onmouseleave?: (event: MouseEvent) => unknown
-  onmousemove?: (event: MouseEvent) => unknown
-  onmouseout?: (event: MouseEvent) => unknown
-  onmouseover?: (event: MouseEvent) => unknown
-  onmouseup?: (event: MouseEvent) => unknown
-  onpaste?: (event: ClipboardEvent) => unknown
-  onpause?: (event: Event) => unknown
-  onplay?: (event: Event) => unknown
-  onplaying?: (event: Event) => unknown
-  onpointercancel?: (event: PointerEvent) => unknown
-  onpointerdown?: (event: PointerEvent) => unknown
-  onpointerenter?: (event: PointerEvent) => unknown
-  onpointerleave?: (event: PointerEvent) => unknown
-  onpointermove?: (event: PointerEvent) => unknown
-  onpointerout?: (event: PointerEvent) => unknown
-  onpointerover?: (event: PointerEvent) => unknown
-  onpointerrawupdate?: (event: PointerEvent) => unknown
-  onpointerup?: (event: PointerEvent) => unknown
-  onprogress?: (event: ProgressEvent) => unknown
-  onratechange?: (event: Event) => unknown
-  onreset?: (event: Event) => unknown
-  onresize?: (event: UIEvent) => unknown
-  onscroll?: (event: Event) => unknown
-  onscrollend?: (event: Event) => unknown
-  onsecuritypolicyviolation?: (event: SecurityPolicyViolationEvent) => unknown
-  onseeked?: (event: Event) => unknown
-  onseeking?: (event: Event) => unknown
-  onselect?: (event: Event) => unknown
-  onselectionchange?: (event: Event) => unknown
-  onselectstart?: (event: Event) => unknown
-  onslotchange?: (event: Event) => unknown
-  onstalled?: (event: Event) => unknown
-  onsubmit?: (event: SubmitEvent) => unknown
-  onsuspend?: (event: Event) => unknown
-  ontimeupdate?: (event: Event) => unknown
-  ontoggle?: (event: Event) => unknown
-  ontransitioncancel?: (event: TransitionEvent) => unknown
-  ontransitionend?: (event: TransitionEvent) => unknown
-  ontransitionrun?: (event: TransitionEvent) => unknown
-  ontransitionstart?: (event: TransitionEvent) => unknown
-  onvolumechange?: (event: Event) => unknown
-  onwaiting?: (event: Event) => unknown
-  onwebkitanimationend?: (event: Event) => unknown
-  onwebkitanimationiteration?: (event: Event) => unknown
-  onwebkitanimationstart?: (event: Event) => unknown
-  onwebkittransitionend?: (event: Event) => unknown
-  onwheel?: (event: WheelEvent) => unknown
-}
-
-type EventHandlers = CommonEventHandlers & {
+// Generated from @webref/events (see scripts/generate-types.mjs).
+type EventHandlers = GeneratedGlobalEventHandlers & {
   [K: `on${string}`]: ((event: any) => unknown) | undefined
 }
 
@@ -739,11 +648,34 @@ export type HTMLElementAttributeMap = ElementSpecificAttributes<{
 
 // ---------- Tag attributes ----------
 
-type SpecificAttributes<T extends keyof AllElementTagNameMap> =
+/**
+ * Layers per-element attributes, strongest last:
+ *   1. generated from the WHATWG HTML spec (`scripts/generate-types.mjs`)
+ *   2. element specific events, generated from @webref/events
+ *   3. hand written refinements (richer value types, pairings like meta name/content)
+ */
+type MergeLeft<Base extends object, Override extends object> = {
+  [K in keyof Base | keyof Override]?: K extends keyof Override
+      ? Override[K]
+      : K extends keyof Base ? Base[K] : never
+}
+
+type GeneratedSpecific<T extends keyof AllElementTagNameMap> =
+  T extends keyof GeneratedHtmlElementAttributes ? NonNullable<GeneratedHtmlElementAttributes[T]> : Record<never, never>
+
+type GeneratedEvents<T extends keyof AllElementTagNameMap> =
+  T extends keyof GeneratedElementEventHandlers ? NonNullable<GeneratedElementEventHandlers[T]> : Record<never, never>
+
+type CuratedSpecific<T extends keyof AllElementTagNameMap> =
   T extends keyof HTMLElementAttributeMap ? HTMLElementAttributeMap[T] : Record<never, never>
 
+type SpecificAttributes<T extends keyof AllElementTagNameMap> =
+  MergeLeft<MergeLeft<GeneratedSpecific<T>, GeneratedEvents<T>>, CuratedSpecific<T>>
+
+type GlobalAttributes = MergeLeft<GeneratedGlobalAttributes, HTMLElementGlobalAttributes>
+
 export type ElementAttributes<T extends keyof AllElementTagNameMap> =
-  Reactive<HTMLElementGlobalAttributes & SpecificAttributes<T>>
+  Reactive<GlobalAttributes & SpecificAttributes<T>>
   & EventHandlers
   & DataAttributes
   & AriaAttributes
