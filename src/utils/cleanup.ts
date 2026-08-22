@@ -13,8 +13,20 @@ export const registerCleanup = (owner: object, cleanup: () => void): void => {
   ownerCleanups.add(cleanup)
 }
 
+const collectDescendants = (root: ParentNode): Array<object> => {
+  const found: Array<object> = []
+  const visit = (node: object): void => {
+    for(const child of (node as ParentNode).childNodes ?? []) {
+      found.push(child)
+      visit(child)
+    }
+  }
+  visit(root)
+  return found
+}
+
 export const runCleanups = (root: ParentNode): void => {
-  const targets: Array<object> = [root, ...root.querySelectorAll("*")]
+  const targets: Array<object> = [root, ...collectDescendants(root)]
   for(const target of targets) {
     const targetCleanups = cleanups.get(target)
     if(!targetCleanups) {

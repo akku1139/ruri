@@ -1,3 +1,4 @@
+import { EachFragment, initializeRows, subscribeReconciliation } from "./each.ts"
 import { hydrationState } from "./internal/hydrationState.ts"
 import { Signal } from "./signal.ts"
 import { HYDRATION_MARKER, ServerComment, ServerElement, ServerFragment } from "./server/element.ts"
@@ -147,6 +148,10 @@ const transplantList = (
       continue
     }
 
+    if(node instanceof EachFragment) {
+      adoptEachList(transplanter, realParent, node)
+      continue
+    }
     if(node instanceof ServerFragment) {
       transplantList(transplanter, realParent, node)
       continue
@@ -162,6 +167,30 @@ const transplantList = (
   if(!transplanter.atEnd()) {
     throw new HydrationMismatchError("unconsumed content after replay")
   }
+}
+
+const adoptEachList = (
+  transplanter: Transplanter,
+  realParent: Node & ParentNode,
+  fragment: EachFragment<any>,
+): void => {
+  const start = transplanter.realIndex
+  transplantList(transplanter, realParent, fragment)
+  const consumed = transplanter.realNodes.slice(start, transplanter.realIndex)
+
+  const itemCount = fragment.controller.items.peek().length
+  if(consumed.length !== itemCount) {
+    throw new HydrationMismatchError(`each() rendered ${itemCount} items but found ${consumed.length} rows`)
+  }
+
+  const anchor = document.createComment("ruri:each")
+  const reference = consumed[0]
+      ?? transplanter.realNodes[transplanter.realIndex]
+      ?? null
+  realParent.insertBefore(anchor, reference)
+
+  initializeRows(fragment.controller, consumed)
+  subscribeReconciliation(anchor, fragment.controller)
 }
 
 const transplantElement = (real: Element, server: ServerElement): void => {

@@ -1,4 +1,4 @@
-import { Signal, effect, rpc, tags } from "../../dist/index.js"
+import { each, Signal, rpc, tags } from "../../dist/index.js"
 
 const { section, h2, form, input, button, ul, li, label, small } = tags
 
@@ -27,10 +27,9 @@ const TodoItem = (todo, todos) =>
 export const TodoApp = (initialTodos) => {
   const todos = new Signal(initialTodos)
 
-  const list = ul({ class: "todo-list" })
-  effect(() => {
-    list.replaceChildren(...todos.value.map((todo) => TodoItem(todo, todos)))
-  })
+  const list = ul({ class: "todo-list" },
+    each(todos, (todo) => TodoItem(todo, todos), { key: (todo) => todo.id }),
+  )
 
   const textInput = input({ type: "text", name: "text", placeholder: "What needs doing?", required: true })
   const addForm = form({

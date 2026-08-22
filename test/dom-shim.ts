@@ -1,3 +1,13 @@
+const siblingOf = (node: ShimNode, offset: 1 | -1): ShimNode | null => {
+  const parent = node.parentNode
+  if(parent === null) {
+    return null
+  }
+  const siblings = parent.childNodes
+  const index = siblings.indexOf(node) + offset
+  return siblings[index] ?? null
+}
+
 export type ShimNode = ShimElement | ShimText | ShimComment
 
 export class ShimText {
@@ -13,6 +23,14 @@ export class ShimText {
   get textContent(): string {
     return this.data
   }
+
+  get nextSibling(): ShimNode | null {
+    return siblingOf(this, 1)
+  }
+
+  get previousSibling(): ShimNode | null {
+    return siblingOf(this, -1)
+  }
 }
 
 export class ShimComment {
@@ -27,6 +45,14 @@ export class ShimComment {
 
   get textContent(): string {
     return ""
+  }
+
+  get nextSibling(): ShimNode | null {
+    return siblingOf(this, 1)
+  }
+
+  get previousSibling(): ShimNode | null {
+    return siblingOf(this, -1)
   }
 }
 
@@ -89,6 +115,30 @@ export class ShimElement {
     }
   }
 
+  insertBefore(node: ShimNode, reference: ShimNode | null): ShimNode {
+    const index = reference === null ? -1 : this.childNodes.indexOf(reference)
+    const currentIndex = this.childNodes.indexOf(node)
+    if(currentIndex >= 0) {
+      this.childNodes.splice(currentIndex, 1)
+    }
+    if(index < 0) {
+      this.childNodes.push(node)
+    } else {
+      this.childNodes.splice(this.childNodes.indexOf(reference as ShimNode), 0, node)
+    }
+    ;(node as { parentNode: ShimElement | null }).parentNode = this
+    return node
+  }
+
+  removeChild(node: ShimNode): ShimNode {
+    const index = this.childNodes.indexOf(node)
+    if(index >= 0) {
+      this.childNodes.splice(index, 1)
+      ;(node as { parentNode: ShimElement | null }).parentNode = null
+    }
+    return node
+  }
+
   replaceChildren(...children: Array<ShimNode>): void {
     for(const child of this.childNodes) {
       ;(child as { parentNode: ShimElement | null }).parentNode = null
@@ -118,6 +168,14 @@ export class ShimElement {
     return this.childNodes
         .map((child) => child.textContent)
         .join("")
+  }
+
+  get nextSibling(): ShimNode | null {
+    return siblingOf(this, 1)
+  }
+
+  get previousSibling(): ShimNode | null {
+    return siblingOf(this, -1)
   }
 
   get outerHTML(): string {

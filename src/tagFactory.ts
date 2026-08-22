@@ -1,3 +1,4 @@
+import { mountEachAnchor } from "./each.ts"
 import { AMBIGUOUS_ELEMENT_NAMES, MATHML_ELEMENT_NAMES, SVG_ELEMENT_NAMES } from "./generated/namespaces.ts"
 import { hydrationState } from "./internal/hydrationState.ts"
 import { Signal } from "./signal.ts"
@@ -117,6 +118,7 @@ const appendChild = (parent: Node & ParentNode, child: Child): void => {
   }
   if(typeof child === "object") {
     parent.append(child as Node)
+    mountEachAnchor(child)
     return
   }
   parent.append(stringifyChild(child))
