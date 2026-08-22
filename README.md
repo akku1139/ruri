@@ -220,6 +220,26 @@ element is yielded before its children, so the first bytes reach the client as
 early as possible. Streaming response bodies are piped to the socket without
 buffering.
 
+#### Out-of-order slots
+
+Slow sections can stream after the shell and swap themselves into place:
+
+```js
+import { createSlot, slotPlaceholder, streamSlots } from "ruri/server"
+
+const panel = createSlot(new Promise((resolve) => {
+  setTimeout(() => resolve(renderToString(UserPanel())), 800)
+}))
+
+return streamSlots({
+  shell: `<html><body>${slotPlaceholder(panel)}</body></html>`,
+  slots: [panel],
+})
+```
+
+The shell is sent immediately; whenever a slot resolves, a self contained
+swap payload replaces its placeholder in the already-delivered document.
+
 ## Examples
 
 ```sh

@@ -4,6 +4,7 @@ import * as path from "node:path"
 import { fileURLToPath } from "node:url"
 
 export { collectStyles } from "../css.ts"
+export { createSlot, slotPlaceholder, streamSlots, type Slot } from "./stream.ts"
 export { renderToStream, renderToString } from "./renderToString.ts"
 export { ServerElement, ServerFragment } from "./element.ts"
 

@@ -65,8 +65,26 @@ properties. MathML attribute types are still curated by hand.
 existing key re-renders only that row (its root node is swapped in place),
 while all other rows keep their DOM nodes.
 
+# Out-of-order streaming with async boundaries
+
+✅ Done — `createSlot` / `slotPlaceholder` / `streamSlots` on `ruri/server`:
+the shell streams immediately and resolved slots swap their placeholders in
+place through self contained payloads. A Suspense-style component API could
+still layer on top.
+
+# MathML attribute types
+
+✅ Done — generated from the MathML Core spec (`mathml-refresh/mathml-core`,
+`spec.html`): global attributes plus the element specific lists (mo, mpadded,
+mspace, munderover, mtd, legacy maction) and math/annotation/a extras.
+
+# Per-property granularity inside rows
+
+✅ Done (row-level) — replacing an item object re-renders only that row.
+True per-property updates would need reactive item proxies or a compiler
+transform; tracked as future work.
+
 # Ideas
 
-- Out-of-order streaming with async boundaries (Suspense-style)
-- MathML attribute types generated from the MathML Core spec
-- Per-property granularity inside rows (reactive item proxies)
+- Reactive item proxies for per-property updates inside each() rows
+

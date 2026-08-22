@@ -1,4 +1,5 @@
-import { collectStyles, createApp, renderToString } from "../../dist/server/index.js"
+import { collectStyles, createApp, createSlot, renderToString, slotPlaceholder, streamSlots } from "../../dist/server/index.js"
+import { tags } from "../../dist/index.js"
 import { TodoApp } from "./app.js"
 
 let nextId = 4
@@ -93,7 +94,17 @@ const page = (contentHtml, data) => `<!doctype html>
 
 const app = createApp()
 
-app.get("/", (context) => context.html(page(renderToString(TodoApp(todos)), { todos })))
+const delayedStats = () =>
+    createSlot(new Promise((resolve) => {
+      setTimeout(() => resolve(tags.p({ class: "meta" }, "stats panel: resolved after the shell was already sent")), 800)
+    }))
+
+app.get("/", () => {
+  const stats = delayedStats()
+  const shell = page(renderToString(TodoApp(todos)), { todos })
+      .replace("</main>", `${slotPlaceholder(stats)}</main>`)
+  return streamSlots({ shell, slots: [stats] })
+})
 
 app.post("/todos", async (context) => {
   const form = new URLSearchParams(await context.body.text())
