@@ -97,12 +97,14 @@ export class ShimElement {
 
   append(...children: Array<ShimNode | string>): void {
     for(const child of children) {
-      const node = typeof child === "string" ? new ShimText(child) : child
-      if(node instanceof ShimElement) {
-        node.parentNode = this
-      } else {
-        ;(node as ShimText | ShimComment).parentNode = this
+      if(child instanceof ShimDocumentFragment) {
+        const grandchildren = [...child.childNodes]
+        child.childNodes = []
+        this.append(...grandchildren)
+        continue
       }
+      const node = typeof child === "string" ? new ShimText(child) : child
+      ;(node as { parentNode: ShimElement | null }).parentNode = this
       this.childNodes.push(node)
     }
   }
@@ -120,15 +122,24 @@ export class ShimElement {
   }
 
   insertBefore(node: ShimNode, reference: ShimNode | null): ShimNode {
-    const index = reference === null ? -1 : this.childNodes.indexOf(reference)
+    if(node instanceof ShimDocumentFragment) {
+      const children = [...node.childNodes]
+      for(const child of children) {
+        this.insertBefore(child, reference)
+      }
+      node.childNodes = []
+      return children[0] ?? node
+    }
+    const referenceIndex = reference === null ? -1 : this.childNodes.indexOf(reference)
     const currentIndex = this.childNodes.indexOf(node)
     if(currentIndex >= 0) {
       this.childNodes.splice(currentIndex, 1)
     }
-    if(index < 0) {
+    const targetIndex = reference === null ? this.childNodes.length : this.childNodes.indexOf(reference as ShimNode)
+    if(targetIndex < 0) {
       this.childNodes.push(node)
     } else {
-      this.childNodes.splice(this.childNodes.indexOf(reference as ShimNode), 0, node)
+      this.childNodes.splice(targetIndex, 0, node)
     }
     ;(node as { parentNode: ShimElement | null }).parentNode = this
     return node

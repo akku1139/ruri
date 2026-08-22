@@ -200,40 +200,115 @@ function createRow<T>(
   return row
 }
 
+/**
+ * Positions (indices into the given sequence) that belong to the longest
+ * increasing subsequence - those rows do not need to move.
+ */
+const longestIncreasingSubsequence = (values: Array<number>): Set<number> => {
+  const previous = new Int32Array(values.length).fill(-1)
+  const tails: Array<number> = []
+  const tailValues: Array<number> = []
+  for(let index = 0; index < values.length; index++) {
+    const value = values[index]!
+    let low = 0
+    let high = tailValues.length
+    while(low < high) {
+      const middle = (low + high) >> 1
+      if(tailValues[middle]! < value) {
+        low = middle + 1
+      } else {
+        high = middle
+      }
+    }
+    if(low > 0) {
+      previous[index] = tails[low - 1]!
+    }
+    tails[low] = index
+    tailValues[low] = value
+  }
+  const keep = new Set<number>()
+  for(let index = tails[tailValues.length - 1]!; index >= 0; index = previous[index]!) {
+    keep.add(index)
+  }
+  return keep
+}
+
 const reconcile = <T>(anchor: Comment, controller: EachController<T>): void => {
   const parent = anchor.parentNode
   const nextItems = controller.items.peek()
 
-  const remaining = new Map(controller.rows.map((row) => [row.key, row]))
+  const oldRows = controller.rows
+  const rowByKey = new Map(oldRows.map((row) => [row.key, row]))
+  const oldIndexByKey = new Map(oldRows.map((row, index) => [row.key, index]))
+  const remaining = new Set(oldRows)
+
   const nextRows: Array<Row<T>> = []
+  const oldIndexByPosition: Array<number> = []
 
   for(let index = 0; index < nextItems.length; index++) {
     const item = nextItems[index] as T
     const key = keyOf(controller, item)
-    const existing = remaining.get(key)
-    if(existing) {
-      remaining.delete(key)
+    const existing = rowByKey.get(key)
+    if(existing !== undefined) {
+      remaining.delete(existing)
       nextRows.push(existing)
-        existing.source.value = item
+      oldIndexByPosition.push(oldIndexByKey.get(key) ?? -1)
       continue
     }
     nextRows.push(createRow(controller, item, index, { anchor }))
+    oldIndexByPosition.push(-1)
   }
 
-  for(const [, row] of remaining) {
+  // Boundary after the row region, captured before removals detach nodes.
+  const lastOldRow = oldRows[oldRows.length - 1]
+  let boundary: Node | null = lastOldRow !== undefined
+      ? lastOldRow.node.nextSibling
+      : anchor.nextSibling
+
+  for(const row of remaining) {
     row.dispose()
     row.node.parentNode?.removeChild(row.node)
   }
 
+  // Minimal-move reorder: rows on the longest increasing subsequence of their
+  // old positions stay put; everything else is moved, with consecutive moved
+  // rows batched through a DocumentFragment.
   if(parent) {
-    let reference: Node | null = anchor.nextSibling
-    for(const row of nextRows) {
-      if(reference === row.node) {
-        reference = reference.nextSibling
+    const reused: Array<{ position: number; oldIndex: number }> = []
+    for(let position = 0; position < nextRows.length; position++) {
+      const oldIndex = oldIndexByPosition[position]!
+      if(oldIndex >= 0) {
+        reused.push({ position, oldIndex })
+      }
+    }
+    const keep = longestIncreasingSubsequence(reused.map((entry) => entry.oldIndex))
+    const keptPositions = new Set([...keep].map((seqIndex) => reused[seqIndex]!.position))
+
+    let pending: Array<Node> = []
+    const flushPending = (): void => {
+      if(pending.length === 0) {
+        return
+      }
+      const ordered = pending.reverse()
+      const fragment = document.createDocumentFragment()
+      for(const node of ordered) {
+        fragment.append(node)
+      }
+      parent.insertBefore(fragment, boundary)
+      boundary = ordered[0] ?? boundary
+      pending = []
+    }
+
+    for(let position = nextRows.length - 1; position >= 0; position--) {
+      const row = nextRows[position]!
+      if(keptPositions.has(position)) {
+        flushPending()
+        boundary = row.node
         continue
       }
-      parent.insertBefore(row.node, reference)
+      pending.push(row.node)
     }
+    flushPending()
   }
 
   // Applying new items last lets replaced rows swap their node in place
