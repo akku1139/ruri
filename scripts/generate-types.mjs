@@ -14,6 +14,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises"
 import path from "node:path"
 import { listAll as elementsListAll } from "@webref/elements"
 import { listAll as eventsListAll } from "@webref/events"
+import markuplintSpec from "@markuplint/html-spec"
 
 const CACHE_DIR = path.resolve(".cache")
 const SOURCE_CACHE = path.join(CACHE_DIR, "html-source.html")
@@ -34,6 +35,30 @@ const stripTags = (html) =>
       .replaceAll(/<[^>]+>/g, " ")
 
 const normalize = (text) => text.replaceAll(/\s+/g, " ").trim()
+
+/** Turns spec prose into a single-line JSDoc-safe string. */
+const docLine = (text, limit = 240) => {
+  const cleaned = normalize(text).replaceAll("\*/", "*\u2044")
+  if(cleaned.length === 0) {
+    return ""
+  }
+  return cleaned.length > limit ? `${cleaned.slice(0, limit).trimEnd()}\u2026` : cleaned
+}
+
+const firstSentence = (text) => {
+  const match = normalize(text).match(/^(.*?\.)\s/)
+  return match ? match[1] : normalize(text)
+}
+
+const jsdoc = (lines) => {
+  const cleaned = lines.filter((line) => line && line.length > 0)
+  if(cleaned.length === 0) {
+    return ""
+  }
+  return `/**\n${cleaned.map((line) => ` * ${line}`).join("\n")}\n */\n`
+}
+
+const inlineDoc = (text) => text ? `/** ${docLine(text)} */\n` : ""
 
 const fetchCached = async (url, cachePath) => {
   try {
@@ -229,11 +254,17 @@ const parseElements = (source) => {
     const attributes = [...block.matchAll(/<dd><code data-x="attr-[^"]*">([A-Za-z][A-Za-z0-9-]*)<\/code><\/dd>/g)]
         .map((attributeMatch) => attributeMatch[1])
 
+    const descriptionMatch = source.slice(end, end + 700).match(/<p>([\s\S]*?)<\/p>/)
+    const description = descriptionMatch ? firstSentence(stripTags(descriptionMatch[1])) : ""
+    const anchorMatch = heading.match(/id="(the-[a-z0-9-]+)"/)
+
     for(const name of names) {
       elements.set(name, {
         interface: interfaceMatch?.[1] ?? "HTMLElement",
         hasGlobalAttributes,
         attributes,
+        description,
+        anchor: anchorMatch?.[1] ?? "",
       })
     }
   }
@@ -263,6 +294,7 @@ const parseAttributeIndex = (source) => {
       elementNames,
       isGlobal,
       value: normalize(stripTags(cells[4])),
+      description: normalize(stripTags(cells[3])),
     })
   }
   return attributes
@@ -303,7 +335,7 @@ const mapValueType = (value) => {
 
 const collectWebrefNamespaces = async () => {
   const all = await elementsListAll()
-  const html = (all.html?.elements ?? []).map((entry) => ({ name: entry.name, interface: entry.interface }))
+  const html = (all.html?.elements ?? []).map((entry) => ({ name: entry.name, interface: entry.interface, href: entry.href }))
   const svg = [
     ...(all.SVG2?.elements ?? []),
     ...(all["SVG11" ]?.elements ?? []),
@@ -311,11 +343,11 @@ const collectWebrefNamespaces = async () => {
     ...(all["svg-animations" ]?.elements ?? []),
     ...(all["filter-effects-1" ]?.elements ?? []),
     ...(all["css-masking-1" ]?.elements ?? []),
-  ].map((entry) => ({ name: entry.name, interface: entry.interface }))
+  ].map((entry) => ({ name: entry.name, interface: entry.interface, href: entry.href }))
   const mathml = [
     ...(all["mathml-core" ]?.elements ?? []),
     ...(all.MathML?.elements ?? []),
-  ].map((entry) => ({ name: entry.name, interface: entry.interface }))
+  ].map((entry) => ({ name: entry.name, interface: entry.interface, href: entry.href }))
 
   const uniqueByName = (entries) => {
     const byName = new Map()
@@ -375,7 +407,7 @@ const collectEvents = async () => {
       if(GENERIC_TARGETS.has(targetName)) {
         const previous = global.get(type)
         if(!previous || scoreOf(event) > previous.score) {
-          global.set(type, { eventInterface, score: scoreOf(event) })
+          global.set(type, { eventInterface, score: scoreOf(event), href: event.href ?? "" })
         }
       } else if(/^(HTML|SVG|MathML)\w*Element$/.test(targetName)) {
         if(!specific.has(targetName)) {
@@ -392,7 +424,7 @@ const collectEvents = async () => {
   return { global, specific }
 }
 
-const emitMathmlSections = (definitions, mathmlElementNames) => {
+const emitMathmlSections = (definitions, mathmlElementNames, hrefs) => {
   return mathmlElementNames
       .sort()
       .map((elementName) => {
@@ -400,13 +432,14 @@ const emitMathmlSections = (definitions, mathmlElementNames) => {
         for(const [attributeName, type] of definitions.get(elementName) ?? []) {
           merged.set(attributeName, type)
         }
+        const doc = jsdoc(hrefs.has(elementName) ? [`@see ${hrefs.get(elementName)}`] : [])
         if(merged.size === 0) {
-          return `  ${JSON.stringify(elementName)}?: Record<string, never>`
+          return `${doc}  ${JSON.stringify(elementName)}?: Record<string, never>`
         }
         const lines = [...merged.entries()]
             .map(([attributeName, type]) => `    ${JSON.stringify(attributeName)}?: ${type}`)
             .join("\n")
-        return `  ${JSON.stringify(elementName)}?: {\n${lines}\n  }`
+        return `${doc}  ${JSON.stringify(elementName)}?: {\n${lines}\n  }`
       })
 }
 
@@ -423,9 +456,15 @@ const header = (lines) => [
 const emitTypeUnion = (name, names) =>
   `export type ${name} =\n${names.map((elementName) => `  | "${elementName}"`).join("\n")}\n`
 
-const emitRecord = (name, entries, indent = "  ") => {
+const emitRecord = (name, entries, descriptions = {}, entryDocs = new Map(), indent = "  ") => {
   const body = Object.entries(entries)
-      .map(([key, type]) => `${indent}  ${JSON.stringify(key)}?: ${type}`)
+      .map(([key, type]) => {
+        const doc = inlineDoc(descriptions[key]) || (() => {
+          const build = entryDocs.get(key)
+          return build ? build() : ""
+        })()
+        return `${doc}${indent}  ${JSON.stringify(key)}?: ${type}`
+      })
       .join("\n")
   if(body.length === 0) {
     return `export type ${name} = Record<string, never>\n`
@@ -477,8 +516,12 @@ export const AMBIGUOUS_ELEMENT_NAMES: ReadonlySet<string> = new Set(${JSON.strin
   // ---------- element types ----------
   const globalAttributes = {}
   const elementAttributes = {}
+  const attributeDescriptions = new Map()
 
   for(const attribute of attributeIndex) {
+    if(attribute.description && !attributeDescriptions.has(attribute.name)) {
+      attributeDescriptions.set(attribute.name, docLine(attribute.description))
+    }
     const type = mapValueType(attribute.value)
     if(attribute.isGlobal) {
       globalAttributes[attribute.name] = type
@@ -501,13 +544,17 @@ export const AMBIGUOUS_ELEMENT_NAMES: ReadonlySet<string> = new Set(${JSON.strin
     }
   }
 
+  const webrefHref = new Map([...webref.html, ...webref.svg, ...webref.mathml].map((entry) => [entry.name, entry.href]))
+  const mdnCite = new Map(markuplintSpec.specs.map((entry) => [entry.name, entry.cite]))
   const svgSections = [...svgDefinitions.entries()]
       .sort(([left], [right]) => left.localeCompare(right))
       .map(([elementName, attributes]) => {
+        const href = webrefHref.get(elementName)
+        const doc = jsdoc(href ? [`@see ${href}`] : [])
         const lines = [...attributes.entries()]
             .map(([attributeName, type]) => `    ${JSON.stringify(attributeName)}?: ${type}`)
             .join("\n")
-        return `  ${JSON.stringify(elementName)}?: {\n${lines}\n  }`
+        return `${doc}  ${JSON.stringify(elementName)}?: {\n${lines}\n  }`
       })
 
   const sections = [
@@ -516,19 +563,25 @@ export const AMBIGUOUS_ELEMENT_NAMES: ReadonlySet<string> = new Set(${JSON.strin
       "SVG 2 (https://github.com/w3c/svgwg, master/definitions.xml) - SVG element attributes",
       "@webref/elements (SVG2 / MathML Core and friends) - element names",
       "@webref/events - event handler tables",
+      "@markuplint/html-spec - MDN links for HTML elements",
     ]),
     emitTypeUnion("HtmlElementName", htmlNamesMerged),
     emitTypeUnion("SvgElementName", svgNames),
     emitTypeUnion("MathMLElementName", mathmlNames),
     "",
-    emitRecord("GeneratedGlobalAttributes", globalAttributes),
+    emitRecord("GeneratedGlobalAttributes", globalAttributes, globalAttributes, attributeDescriptions),
     "",
     "export type GeneratedHtmlElementAttributes = {",
     ...Object.keys(elementAttributes).sort().map((elementName) => {
+      const info = htmlElements.get(elementName) ?? {}
+      const see = info.anchor
+          ? `@see https://html.spec.whatwg.org/multipage/#${info.anchor}`
+          : (mdnCite.get(elementName) ? `@see ${mdnCite.get(elementName)}` : "")
+      const doc = jsdoc([info.description, see])
       const record = Object.entries(elementAttributes[elementName])
-          .map(([key, type]) => `    ${JSON.stringify(key)}?: ${type}`)
+          .map(([key, type]) => `${inlineDoc(attributeDescriptions.get(key))}    ${JSON.stringify(key)}?: ${type}`)
           .join("\n")
-      return `  ${JSON.stringify(elementName)}?: {\n${record}\n  }`
+      return `${doc}  ${JSON.stringify(elementName)}?: {\n${record}\n  }`
     }),
     "}",
     "",
@@ -537,16 +590,18 @@ export const AMBIGUOUS_ELEMENT_NAMES: ReadonlySet<string> = new Set(${JSON.strin
     "}",
     "",
     "export type GeneratedMathMLElementAttributes = {",
-    ...emitMathmlSections(mathmlDefinitions, webref.mathml.map((entry) => entry.name)),
+    ...emitMathmlSections(mathmlDefinitions, webref.mathml.map((entry) => entry.name), webrefHref),
     "}",
   ]
 
-  const eventHandlerLine = (type, eventInterface) =>
-      `  ${JSON.stringify(`on${type}`)}?: (event: ${eventInterface}) => unknown`
+  const eventHandlerLine = (type, info) => {
+    const doc = info.href ? `  /** @see ${info.href} */\n` : ""
+    return `${doc}  ${JSON.stringify(`on${type}`)}?: (event: ${info.eventInterface}) => unknown`
+  }
 
   const globalHandlers = [...events.global.entries()]
       .sort(([left], [right]) => left.localeCompare(right))
-      .map(([type, info]) => eventHandlerLine(type, info.eventInterface))
+      .map(([type, info]) => eventHandlerLine(type, info))
 
   const specificByElement = new Map()
   for(const [interfaceName, handlers] of events.specific) {
@@ -571,7 +626,7 @@ export const AMBIGUOUS_ELEMENT_NAMES: ReadonlySet<string> = new Set(${JSON.strin
           .map(([elementName, handlers]) => {
             const lines = [...handlers.entries()]
                 .sort(([left], [right]) => left.localeCompare(right))
-                .map(([type, info]) => eventHandlerLine(type, info.eventInterface))
+                .map(([type, info]) => eventHandlerLine(type, info))
             return `  ${JSON.stringify(elementName)}?: {\n${lines.join("\n")}\n  }`
           }),
       "}",
