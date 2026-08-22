@@ -7,8 +7,20 @@ export interface RouteContext {
 
 export type RouteHandler = (context: RouteContext) => Node
 
+export type RouterMode = "history" | "hash"
+
+export interface RouterOptions {
+  /**
+   * - `history` (default): real paths via the History API - needs server
+   *   rewrites for deep links.
+   * - `hash`: routes live in `#/path` - works on any static host and never
+   *   touches the surrounding page URL scheme.
+   */
+  mode?: RouterMode
+}
+
 export interface Router {
-  /** The current pathname, updated by link clicks and popstate. */
+  /** The current route path, updated by link clicks and popstate. */
   path: Signal<string>
   /** Renders the matching route's node for a path (no DOM side effects). */
   resolve(pathname: string): Node
@@ -58,14 +70,23 @@ const buildRoutes = (routes: Record<string, RouteHandler>): Array<CompiledRoute>
  * router.navigate("/users/7")
  * ```
  */
-export const createRouter = (routes: Record<string, RouteHandler>): Router => {
+export const createRouter = (routes: Record<string, RouteHandler>, options: RouterOptions = {}): Router => {
   const compiledRoutes = buildRoutes(routes)
+  const mode = options.mode ?? "history"
 
-  const path = new Signal(location.pathname)
+  const currentPath = (): string => {
+    if(mode === "hash") {
+      // Tolerate plain objects in tests/sandboxes that store the raw value.
+      const hash = location.hash ?? ""
+      return (hash.startsWith("#") ? hash.slice(1) : hash) || "/"
+    }
+    return location.pathname
+  }
+
+  const path = new Signal(currentPath())
 
   const resolve = (pathname: string): Node => {
     for(const route of compiledRoutes) {
-      console.error("[dbg] test", pathname, "against", route.pattern)
       const match = route.pattern.exec(pathname.replace(/\/$/, "") || "/")
       if(match) {
         const params: Record<string, string> = {}
@@ -80,26 +101,40 @@ export const createRouter = (routes: Record<string, RouteHandler>): Router => {
 
   let container: ParentNode | null = null
 
+  let lastRenderedPath: string | null = null
+
   const renderCurrent = (): void => {
     if(!container) {
       return
     }
+    path.value = currentPath()
+    lastRenderedPath = path.value
     const view = resolve(path.value)
     runCleanupsFor(container as unknown as object)
     container.replaceChildren(view)
   }
 
-  const onPopState = (): void => {
-    path.value = location.pathname
+  // Hash assignments fire an async hashchange after we already rendered
+  // synchronously - skip that echo.
+  const eventName = mode === "hash" ? "hashchange" : "popstate"
+  const onRouteEvent = (): void => {
+    if(currentPath() === lastRenderedPath) {
+      return
+    }
     renderCurrent()
   }
 
-  window.addEventListener("popstate", onPopState)
+  window.addEventListener(eventName, onRouteEvent)
 
   return {
     path,
     resolve,
     navigate(to) {
+      if(mode === "hash") {
+        location.hash = to
+        renderCurrent()
+        return
+      }
       history.pushState({}, "", to)
       path.value = location.pathname
       renderCurrent()
@@ -109,7 +144,7 @@ export const createRouter = (routes: Record<string, RouteHandler>): Router => {
       renderCurrent()
     },
     destroy() {
-      window.removeEventListener("popstate", onPopState)
+      window.removeEventListener(eventName, onRouteEvent)
       container = null
     },
   }

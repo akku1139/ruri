@@ -142,10 +142,10 @@ const app = document.getElementById("playground-root") ?? output
 const router = createRouter({
   "/": () => div({}, "home"),
   "/hello/:name": ({ params }) => div({}, `hello ${params.name}`),
-})
+}, { mode: "hash" })
 
 router.mount(app)
-router.navigate("/hello/ruri")
+router.navigate("/hello/ruri") // lives in #/hello/ruri - the page URL is untouched
 ```
 
 Routes with `:param` segments receive typed params; navigation works through

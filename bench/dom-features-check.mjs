@@ -54,3 +54,33 @@ router.navigate("/")
 check("navigate() swaps views", routerContainer.textContent === "home page")
 
 process.exitCode = failures > 0 ? 1 : 0
+
+// --- router hash mode -------------------------------------------------------
+
+{
+  const savedLocation = globalThis.location
+  const savedHistory = globalThis.history
+  const calls = []
+  globalThis.location = { hash: "", pathname: "/", href: "", search: "", origin: "", assign() {}, replace() {} }
+  globalThis.history = { pushState: () => { calls.push("push") }, replaceState() {}, go() {}, back() {}, forward() {} }
+
+  const { tags: t2, createRouter: cr2 } = await import("../src/index.ts")
+  const routerHash = cr2({
+    "/": () => { const d = document.createElement("div"); d.textContent = "home"; return d },
+    "/hello/:name": ({ params }) => { const d = document.createElement("div"); d.textContent = `hello ${params.name}`; return d },
+  }, { mode: "hash" })
+
+  const box = document.createElement("div")
+  document.body.append(box)
+  routerHash.mount(box)
+  check("hash router initial route", box.textContent === "home")
+
+  routerHash.navigate("/hello/ruri")
+  check("hash router navigates without touching history", box.textContent === "hello ruri" && calls.length === 0)
+  const storedHash = String(globalThis.location.hash)
+  check("hash written to location", storedHash === "#/hello/ruri" || storedHash === "/hello/ruri")
+
+  routerHash.destroy()
+  globalThis.location = savedLocation
+  globalThis.history = savedHistory
+}

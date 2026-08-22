@@ -18,6 +18,9 @@ const slugFromUrl = (url) => {
 const chunkCache = new Map()
 
 const fetchChunk = (slug) => {
+  if(!slug) {
+    return Promise.reject(new Error("no slug"))
+  }
   const cached = chunkCache.get(slug)
   if(cached) {
     return cached
@@ -36,6 +39,9 @@ const fetchChunk = (slug) => {
 }
 
 export const prefetchPage = (slug) => {
+  if(!slug) {
+    return
+  }
   void fetchChunk(slug).catch(() => {})
 }
 
@@ -150,8 +156,12 @@ export const loadPlaygrounds = (root = document) => {
     // The output element is injected into the module scope so samples can
     // simply `output.append(...)`. The bare "ruri" specifier resolves through
     // the document's import map (blob modules consult it too).
+    // Samples run sandboxed: history/location are shadowed so route demos
+    // cannot mutate the real page URL.
     const moduleSource =
         `const output = document.getElementById(${JSON.stringify(viewId)});\n` +
+        `const history = { pushState() {}, replaceState() {}, go() {}, back() {}, forward() {} };\n` +
+        `const location = { href: "", pathname: "/", hash: "", search: "", origin: "" };\n` +
         source
 
     const blobUrl = URL.createObjectURL(new Blob([moduleSource], { type: "text/javascript" }))
