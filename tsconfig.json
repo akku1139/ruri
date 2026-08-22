@@ -5,8 +5,6 @@
     "moduleResolution": "Bundler",
 
     // Module
-    "esModuleInterop": false,
-    "allowSyntheticDefaultImports": false,
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "forceConsistentCasingInFileNames": true, // Windows...
@@ -35,5 +33,9 @@
     "types": [
       "node"
     ]
-  }
+  },
+  "exclude": [
+    "dist",
+    "node_modules"
+  ]
 }

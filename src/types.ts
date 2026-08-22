@@ -3,8 +3,16 @@ import type { Signal } from "./signal.ts"
 export type Subscriber = () => void
 export type Equals<T> = (before: T, after: T) => boolean
 
-// TODO: support all primitive values
-export type Child = HTMLElement | Signal | string | number
+// TODO: support template literals / functions as children
+export type Child =
+  | Node
+  | Signal<any>
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | ReadonlyArray<Child>
 export type Children = Array<Child>
 
 // https://developer.mozilla.org/en-US/docs/Web/CSS/color_value
@@ -12,14 +20,18 @@ type CSSColor = string
 
 type UTF8 = "utf-8" | "UTF-8" // ASCII case-insensitive match for "UTF-8".
 
-// ---------- Utils ----------
+type CustomProperties = { [K: `--${string}`]: string }
+type StyleValue = string | (Partial<CSSStyleDeclaration> & CustomProperties)
 
-// export type AddBooleanString<T extends object> = {
-//   [K in keyof T]: boolean extends T[K] ? T[K] | "true" | "false" : T[K]
-// }
+// ---------- Utils ----------
 
 type MakeUnionsArray<T extends object> = {
   [K in keyof T]: Array<T[K]>
+}
+
+/** Allow each attribute value to be passed as a reactive {@link Signal} or `null` (removes the attribute). */
+type Reactive<T extends object> = {
+  [K in keyof T]?: T[K] | Signal<T[K]> | null
 }
 
 // ---------- HTML ----------
@@ -75,7 +87,7 @@ type MediaQuery = string
 // https://html.spec.whatwg.org/multipage/dom.html#global-attributes
 type HTMLElementGlobalAttributes = {
   id: string
-  class: string // TODO: allow array
+  class: string | Array<string> // TODO: allow Signal per item
 
   accesskey: string // TODO: Enumerate all keys?
   // anchor: string // Non-standard https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/anchor
@@ -87,8 +99,8 @@ type HTMLElementGlobalAttributes = {
   dir: "rtl" | "ltr" | "auto"
   draggable: boolean
   enterkeyhint: "enter" | "done" | "go" | "next" | "previous" | "search" | "send"
-  /** @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/exportparts */
-  hidden: "" | "hidden" | "until-found"
+  /** @see https://developer.mozilla.org/en-US/docs/Web/API/Popover_API */
+  hidden: boolean | "" | "hidden" | "until-found"
   inert: boolean // boolean attribute
   inputmode: "none" | "text" | "tel" | "url" | "email" | "numeric" | "decimal" | "search"
   is: string // TODO: Extend with type arguments
@@ -103,22 +115,148 @@ type HTMLElementGlobalAttributes = {
   popover: "auto" | "" | "manual" | "hint"
   slot: string
   spellcheck: boolean | ""
-  style: string // TODO: CSS in JS
+  style: StyleValue
   tabindex: number
   title: string
   translate: "yes" | "" | "no"
   // virtualkeyboardpolicy: "manual" | "auto" // Non-standard https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/virtualkeyboardpolicy
   writingsuggestions: boolean | ""
 
+  xmlns: string
+
   /** @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/part */
   part: string // CSS Shadow Parts
   exportparts: string // CSS Shadow Parts
 }
 
+// ---------- Events ----------
+
+// TODO: Cover all events defined in https://developer.mozilla.org/en-US/docs/Web/Events
+type CommonEventHandlers = {
+  onabort?: (event: UIEvent) => unknown
+  onanimationcancel?: (event: AnimationEvent) => unknown
+  onanimationend?: (event: AnimationEvent) => unknown
+  onanimationiteration?: (event: AnimationEvent) => unknown
+  onanimationstart?: (event: AnimationEvent) => unknown
+  onauxclick?: (event: MouseEvent) => unknown
+  onblur?: (event: FocusEvent) => unknown
+  oncancel?: (event: Event) => unknown
+  oncanplay?: (event: Event) => unknown
+  oncanplaythrough?: (event: Event) => unknown
+  onchange?: (event: Event) => unknown
+  onclick?: (event: MouseEvent) => unknown
+  onclose?: (event: Event) => unknown
+  oncontextmenu?: (event: MouseEvent) => unknown
+  oncopy?: (event: ClipboardEvent) => unknown
+  oncuechange?: (event: Event) => unknown
+  oncut?: (event: ClipboardEvent) => unknown
+  ondblclick?: (event: MouseEvent) => unknown
+  ondrag?: (event: DragEvent) => unknown
+  ondragend?: (event: DragEvent) => unknown
+  ondragenter?: (event: DragEvent) => unknown
+  ondragleave?: (event: DragEvent) => unknown
+  ondragover?: (event: DragEvent) => unknown
+  ondragstart?: (event: DragEvent) => unknown
+  ondrop?: (event: DragEvent) => unknown
+  ondurationchange?: (event: Event) => unknown
+  onemptied?: (event: Event) => unknown
+  onended?: (event: Event) => unknown
+  onerror?: (event: ErrorEvent) => unknown
+  onfocus?: (event: FocusEvent) => unknown
+  onfocusin?: (event: FocusEvent) => unknown
+  onfocusout?: (event: FocusEvent) => unknown
+  onformdata?: (event: FormDataEvent) => unknown
+  onfullscreenchange?: (event: Event) => unknown
+  ongotpointercapture?: (event: PointerEvent) => unknown
+  oninput?: (event: InputEvent) => unknown
+  oninvalid?: (event: Event) => unknown
+  onkeydown?: (event: KeyboardEvent) => unknown
+  onkeypress?: (event: KeyboardEvent) => unknown
+  onkeyup?: (event: KeyboardEvent) => unknown
+  onload?: (event: Event) => unknown
+  onloadeddata?: (event: Event) => unknown
+  onloadedmetadata?: (event: Event) => unknown
+  onloadstart?: (event: Event) => unknown
+  onlostpointercapture?: (event: PointerEvent) => unknown
+  onmousedown?: (event: MouseEvent) => unknown
+  onmouseenter?: (event: MouseEvent) => unknown
+  onmouseleave?: (event: MouseEvent) => unknown
+  onmousemove?: (event: MouseEvent) => unknown
+  onmouseout?: (event: MouseEvent) => unknown
+  onmouseover?: (event: MouseEvent) => unknown
+  onmouseup?: (event: MouseEvent) => unknown
+  onpaste?: (event: ClipboardEvent) => unknown
+  onpause?: (event: Event) => unknown
+  onplay?: (event: Event) => unknown
+  onplaying?: (event: Event) => unknown
+  onpointercancel?: (event: PointerEvent) => unknown
+  onpointerdown?: (event: PointerEvent) => unknown
+  onpointerenter?: (event: PointerEvent) => unknown
+  onpointerleave?: (event: PointerEvent) => unknown
+  onpointermove?: (event: PointerEvent) => unknown
+  onpointerout?: (event: PointerEvent) => unknown
+  onpointerover?: (event: PointerEvent) => unknown
+  onpointerrawupdate?: (event: PointerEvent) => unknown
+  onpointerup?: (event: PointerEvent) => unknown
+  onprogress?: (event: ProgressEvent) => unknown
+  onratechange?: (event: Event) => unknown
+  onreset?: (event: Event) => unknown
+  onresize?: (event: UIEvent) => unknown
+  onscroll?: (event: Event) => unknown
+  onscrollend?: (event: Event) => unknown
+  onsecuritypolicyviolation?: (event: SecurityPolicyViolationEvent) => unknown
+  onseeked?: (event: Event) => unknown
+  onseeking?: (event: Event) => unknown
+  onselect?: (event: Event) => unknown
+  onselectionchange?: (event: Event) => unknown
+  onselectstart?: (event: Event) => unknown
+  onslotchange?: (event: Event) => unknown
+  onstalled?: (event: Event) => unknown
+  onsubmit?: (event: SubmitEvent) => unknown
+  onsuspend?: (event: Event) => unknown
+  ontimeupdate?: (event: Event) => unknown
+  ontoggle?: (event: Event) => unknown
+  ontransitioncancel?: (event: TransitionEvent) => unknown
+  ontransitionend?: (event: TransitionEvent) => unknown
+  ontransitionrun?: (event: TransitionEvent) => unknown
+  ontransitionstart?: (event: TransitionEvent) => unknown
+  onvolumechange?: (event: Event) => unknown
+  onwaiting?: (event: Event) => unknown
+  onwebkitanimationend?: (event: Event) => unknown
+  onwebkitanimationiteration?: (event: Event) => unknown
+  onwebkitanimationstart?: (event: Event) => unknown
+  onwebkittransitionend?: (event: Event) => unknown
+  onwheel?: (event: WheelEvent) => unknown
+}
+
+type EventHandlers = CommonEventHandlers & {
+  [K: `on${string}`]: ((event: any) => unknown) | undefined
+}
+
+type DataAttributes = {
+  [K: `data-${string}`]: string | number
+}
+
+type AriaAttributes = {
+  [K: `aria-${string}`]: string | number | boolean
+}
+
+// ---------- Namespaces ----------
+
+/**
+ * Elements created through the {@link tags} proxy are dispatched to the right
+ * namespace (`HTML`, `SVG`, `MathML`) from their tag name.
+ * Ambiguous names (`a`, `script`, `style`, `title`) resolve to HTML unless
+ * the `xmlns` attribute says otherwise.
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/API/Document/createElementNS
+ */
+export type AllElementTagNameMap = HTMLElementTagNameMap & SVGElementTagNameMap & MathMLElementTagNameMap
+
 // ---------- Factory ----------
 
-type HTMLElementAttributeFactory<T extends Record<string, object>> = {
-  [K in keyof T | Exclude<keyof HTMLElementTagNameMap, keyof T>]: Partial<HTMLElementGlobalAttributes & (K extends keyof T ? T[K] : {})>
+type ElementSpecificAttributes<T extends Record<string, object>> = {
+  [K in keyof T | Exclude<keyof AllElementTagNameMap, keyof T>]: (K extends keyof T ? T[K] : Record<never, never>)
 }
 
 type HTMLMetaElementAttributeFactory<T extends [string, unknown, object?]> = {
@@ -129,7 +267,64 @@ type HTMLMetaElementAttributeFactory<T extends [string, unknown, object?]> = {
 // --------------------
 
 // https://html.spec.whatwg.org/#elements-3
-export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
+type InputType =
+  "text" | "search" | "tel" | "url" | "email" | "password"
+  | "date" | "month" | "week" | "time" | "datetime-local"
+  | "number" | "range" | "color"
+  | "checkbox" | "radio" | "file"
+  | "submit" | "image" | "reset" | "button" | "hidden"
+
+type SVGGeometryAttributes = {
+  cx?: number
+  cy?: number
+  r?: number
+  rx?: number | string
+  ry?: number | string
+  d?: string
+  x?: number | string
+  y?: number | string
+  x1?: number | string
+  y1?: number | string
+  x2?: number | string
+  y2?: number | string
+  points?: string
+  width?: number | string
+  height?: number | string
+}
+
+type SVGPresentationAttributes = {
+  fill?: string
+  stroke?: string
+  "stroke-width"?: number | string
+  "stroke-linecap"?: "butt" | "round" | "square" | "inherit"
+  "stroke-linejoin"?: "miter" | "round" | "bevel" | "inherit"
+  "stroke-dasharray"?: string
+  opacity?: number | string
+  transform?: string
+  "fill-opacity"?: number | string
+  "fill-rule"?:"nonzero" | "evenodd" | "inherit"
+  "clip-rule"?: "nonzero" | "evenodd" | "inherit"
+  "text-anchor"?: "start" | "middle" | "end" | "inherit"
+  "font-size"?: number | string
+  "font-family"?: string
+  "font-weight"?: number | string
+  color?: CSSColor
+}
+
+type SVGGradientAttributes = {
+  gradientUnits?: "userSpaceOnUse" | "objectBoundingBox"
+  offset?: number | string
+  "stop-color"?: string
+  "stop-opacity"?: number | string
+  spreadMethod?: "pad" | "reflect" | "repeat"
+  fx?: number | string
+  fy?: number | string
+}
+
+// TODO: Split into more precise types (e.g. `viewBox` is only valid on `<svg>`)
+type SVGSharedAttributes = SVGGeometryAttributes & SVGPresentationAttributes
+
+export type HTMLElementAttributeMap = ElementSpecificAttributes<{
   a: {
     // attributionsrc: string // Experimental
     href: CommonHTMLAttributes["url"]
@@ -196,6 +391,7 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
     width: number
     height: number
   }
+  circle: SVGSharedAttributes
   col: {
     span: number
   }
@@ -205,6 +401,7 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
   data: {
     value: string
   }
+  defs: SVGSharedAttributes
   del: {
     cite: string
     datetime: CommonHTMLAttributes["datetime"]
@@ -217,6 +414,7 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
     closedby: "any" | "closerequest" | "none"
     open: boolean
   }
+  ellipse: SVGSharedAttributes
   embed: {
     src: CommonHTMLAttributes["url"]
     type: CommonHTMLAttributes["mime"]
@@ -239,6 +437,7 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
     target: CommonHTMLAttributes["target"]
     rel: CommonHTMLAttributes["linkTypes"]["form"]
   }
+  g: SVGSharedAttributes
   iframe: {
     src: CommonHTMLAttributes["url"]
     srcdoc: string // TODO: add HTMLElement
@@ -267,7 +466,41 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
     loading: CommonHTMLAttributes["lazyloading"]
     fetchpriority: CommonHTMLAttributes["fetchpriority"]
   }
-  input: {}
+  input: {
+    accept: string
+    alt: string
+    autocomplete: CommonHTMLAttributes["autocomplete"]
+    capture: "user" | "environment"
+    checked: boolean
+    dirname: string
+    disabled: boolean
+    form: string // a form element
+    formaction: CommonHTMLAttributes["url"]
+    formenctype: "application/x-www-form-urlencoded" | "multipart/form-data" | "text/plain"
+    formmethod: "get" | "post" | "dialog"
+    formnovalidate: boolean
+    formtarget: CommonHTMLAttributes["target"]
+    height: number
+    list: string
+    max: number | string
+    maxlength: number
+    min: number | string
+    minlength: number
+    multiple: boolean
+    name: string
+    pattern: string
+    placeholder: string
+    popovertarget: string
+    popovertargetaction: "toggle" | "show" | "hide"
+    readonly: boolean
+    required: boolean
+    size: number
+    src: CommonHTMLAttributes["url"]
+    step: number | "any"
+    type: InputType
+    value: string | number
+    width: number
+  }
   ins: {
     cite: string
     datetime: CommonHTMLAttributes["datetime"]
@@ -280,6 +513,8 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
     // /** @deprecated */
     // type: "1" | "a" | "A" | "i" | "I"
   }
+  line: SVGSharedAttributes
+  linearGradient: SVGSharedAttributes & SVGGradientAttributes
   link: {
     href: CommonHTMLAttributes["url"]
     crossorigin: CommonHTMLAttributes["cors"]
@@ -302,6 +537,14 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
   }
   map: {
     name: string
+  }
+  marker: SVGSharedAttributes & {
+    markerWidth?: number | string
+    markerHeight?: number | string
+    refX?: number | string
+    refY?: number | string
+    orient?: "auto" | "auto-start-reverse" | number | string
+    viewBox?: string
   }
   meta: (
     // https://wiki.whatwg.org/wiki/MetaExtensions
@@ -371,6 +614,9 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
     form: string // a form element
     name: string
   }
+  path: SVGSharedAttributes
+  polygon: SVGSharedAttributes
+  polyline: SVGSharedAttributes
   progress: {
     value: number
     max: number
@@ -378,6 +624,8 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
   q: {
     cite: string
   }
+  radialGradient: SVGSharedAttributes & SVGGradientAttributes
+  rect: SVGSharedAttributes
   script: {
     src: CommonHTMLAttributes["url"]
     type: CommonHTMLAttributes["mime"]
@@ -411,9 +659,16 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
     width: number
     height: number
   }
+  stop: SVGGradientAttributes
   style: {
     media: MediaQuery
     blocking: CommonHTMLAttributes["blocking"]
+  }
+  svg: SVGSharedAttributes & {
+    viewBox: string
+    preserveAspectRatio?: string
+    version?: string
+    "xmlns:xlink"?: string
   }
   td: {
     colspan: number
@@ -426,7 +681,22 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
     shadowrootclonable: boolean
     shadowrootserializable: boolean
   }
-  textarea: {}
+  text: SVGSharedAttributes
+  textarea: {
+    autocomplete: CommonHTMLAttributes["autocomplete"]
+    cols: number
+    dirname: string
+    disabled: boolean
+    form: string // a form element
+    maxlength: number
+    minlength: number
+    name: string
+    placeholder: string
+    readonly: boolean
+    required: boolean
+    rows: number
+    wrap: "hard" | "soft" | "off"
+  }
   th: {
     colspan: number
     rowspan: number
@@ -444,6 +714,14 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
     label: string
     default: boolean
   }
+  tspan: SVGSharedAttributes & {
+    dx?: number | string
+    dy?: number | string
+    rotate?: string
+  }
+  use: SVGSharedAttributes & {
+    href: string
+  }
   video: {
     src: CommonHTMLAttributes["url"]
     crossorigin: CommonHTMLAttributes["cors"]
@@ -458,3 +736,14 @@ export type HTMLElementAttributeMap = HTMLElementAttributeFactory<{
     height: number
   }
 }>
+
+// ---------- Tag attributes ----------
+
+type SpecificAttributes<T extends keyof AllElementTagNameMap> =
+  T extends keyof HTMLElementAttributeMap ? HTMLElementAttributeMap[T] : Record<never, never>
+
+export type ElementAttributes<T extends keyof AllElementTagNameMap> =
+  Reactive<HTMLElementGlobalAttributes & SpecificAttributes<T>>
+  & EventHandlers
+  & DataAttributes
+  & AriaAttributes

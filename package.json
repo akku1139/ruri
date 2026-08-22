@@ -18,13 +18,21 @@
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
     "test": "pnpm run typecheck && pnpm run test:basic",
-    "test:basic": "node --test",
+    "test:basic": "node --test \"test/*.test.ts\"",
     "typecheck": "tsc --noEmit"
   },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "import": "./dist/server/index.js"
+    },
+    "./jsx-runtime": {
+      "types": "./dist/jsx-runtime.d.ts",
+      "import": "./dist/jsx-runtime.js"
     }
   },
   "dependencies": {
