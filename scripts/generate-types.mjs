@@ -18,6 +18,8 @@ import { listAll as eventsListAll } from "@webref/events"
 const CACHE_DIR = path.resolve(".cache")
 const SOURCE_CACHE = path.join(CACHE_DIR, "html-source.html")
 const HTML_SOURCE_URL = "https://raw.githubusercontent.com/whatwg/html/main/source"
+const SVG_DEFINITIONS_CACHE = path.join(CACHE_DIR, "svg-definitions.xml")
+const SVG_DEFINITIONS_URL = "https://raw.githubusercontent.com/w3c/svgwg/master/master/definitions.xml"
 const OUT_DIR = path.resolve("src/generated")
 
 const stripTags = (html) =>
@@ -31,19 +33,100 @@ const stripTags = (html) =>
 
 const normalize = (text) => text.replaceAll(/\s+/g, " ").trim()
 
-const fetchHtmlSource = async () => {
+const fetchCached = async (url, cachePath) => {
   try {
-    return await readFile(SOURCE_CACHE, "utf8")
+    return await readFile(cachePath, "utf8")
   } catch {
-    const response = await fetch(HTML_SOURCE_URL)
+    const response = await fetch(url)
     if(!response.ok) {
-      throw new Error(`failed to download ${HTML_SOURCE_URL}: HTTP ${response.status}`)
+      throw new Error(`failed to download ${url}: HTTP ${response.status}`)
     }
     const text = await response.text()
     await mkdir(CACHE_DIR, { recursive: true })
-    await writeFile(SOURCE_CACHE, text)
+    await writeFile(cachePath, text)
     return text
   }
+}
+
+const fetchHtmlSource = () => fetchCached(HTML_SOURCE_URL, SOURCE_CACHE)
+
+// SVG 2 machine readable definitions (github.com/w3c/svgwg, master/definitions.xml).
+// Value syntaxes live in spec prose only, so attribute values are typed with
+// heuristics: geometry properties become `number | string`, everything else string.
+const EVENT_CATEGORIES = new Set(["global event", "document event", "window event"])
+
+const parseSvgDefinitions = (xml) => {
+  const categories = new Map()
+  for(const match of xml.matchAll(/<attributecategory\b([\s\S]*?)<\/attributecategory>/g)) {
+    const block = match[1]
+    const name = block.match(/name='([^']+)'/)?.[1]
+    if(!name) {
+      continue
+    }
+    const names = new Set()
+    const presentationList = block.match(/presentationattributes='([^']+)'/)?.[1]
+    if(presentationList) {
+      for(const entry of presentationList.split(/\s*,\s*/)) {
+        names.add(entry)
+      }
+    }
+    for(const attributeMatch of block.matchAll(/<attribute name='([^']+)'/g)) {
+      names.add(attributeMatch[1])
+    }
+    categories.set(name, names)
+  }
+
+  const elements = new Map()
+  for(const match of xml.matchAll(/<element\b([\s\S]*?)<\/element>/g)) {
+    const block = match[1]
+    const name = block.match(/name='([^']+)'/)?.[1]
+    if(!name) {
+      continue
+    }
+    const attributes = new Map()
+
+    const add = (attributeName, type) => {
+      if(attributeName.startsWith("on")) {
+        return
+      }
+      if(!attributes.has(attributeName)) {
+        attributes.set(attributeName, type)
+      }
+    }
+
+    const categoryList = block.match(/attributecategories='([^']+)'/)?.[1] ?? ""
+    for(const categoryName of categoryList.split(/\s*,\s*/)) {
+      if(EVENT_CATEGORIES.has(categoryName)) {
+        continue
+      }
+      for(const attributeName of categories.get(categoryName) ?? []) {
+        add(attributeName, "string")
+      }
+    }
+
+    const geometry = block.match(/geometryproperties='([^']+)'/)?.[1] ?? ""
+    for(const attributeName of geometry.split(/\s*,\s*/)) {
+      if(attributeName) {
+        add(attributeName, "number | string")
+      }
+    }
+
+    const attributeList = block.match(/\battributes='([^']+)'/)?.[1] ?? ""
+    for(const attributeName of attributeList.split(/\s*,\s*/)) {
+      if(attributeName) {
+        add(attributeName, "string")
+      }
+    }
+
+    for(const attributeMatch of block.matchAll(/<attribute name='([^']+)'/g)) {
+      add(attributeMatch[1], "string")
+    }
+
+    if(attributes.size > 0) {
+      elements.set(name, attributes)
+    }
+  }
+  return elements
 }
 
 // ---------- WHATWG HTML parsing ----------
@@ -262,11 +345,13 @@ const emitRecord = (name, entries, indent = "  ") => {
 }
 
 const main = async () => {
-  const [source, webref, events] = await Promise.all([
+  const [source, svgXml, webref, events] = await Promise.all([
     fetchHtmlSource(),
+    fetchCached(SVG_DEFINITIONS_URL, SVG_DEFINITIONS_CACHE),
     collectWebrefNamespaces(),
     collectEvents(),
   ])
+  const svgDefinitions = parseSvgDefinitions(svgXml)
 
   const htmlElements = parseElements(source)
   const attributeIndex = parseAttributeIndex(source)
@@ -325,9 +410,19 @@ export const AMBIGUOUS_ELEMENT_NAMES: ReadonlySet<string> = new Set(${JSON.strin
     }
   }
 
+  const svgSections = [...svgDefinitions.entries()]
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([elementName, attributes]) => {
+        const lines = [...attributes.entries()]
+            .map(([attributeName, type]) => `    ${JSON.stringify(attributeName)}?: ${type}`)
+            .join("\n")
+        return `  ${JSON.stringify(elementName)}?: {\n${lines}\n  }`
+      })
+
   const sections = [
     header([
       "WHATWG HTML (https://github.com/whatwg/html) - element names, attributes and value types",
+      "SVG 2 (https://github.com/w3c/svgwg, master/definitions.xml) - SVG element attributes",
       "@webref/elements (SVG2 / MathML Core and friends) - element names",
       "@webref/events - event handler tables",
     ]),
@@ -344,6 +439,10 @@ export const AMBIGUOUS_ELEMENT_NAMES: ReadonlySet<string> = new Set(${JSON.strin
           .join("\n")
       return `  ${JSON.stringify(elementName)}?: {\n${record}\n  }`
     }),
+    "}",
+    "",
+    "export type GeneratedSvgElementAttributes = {",
+    ...svgSections,
     "}",
   ]
 
@@ -391,6 +490,7 @@ export const AMBIGUOUS_ELEMENT_NAMES: ReadonlySet<string> = new Set(${JSON.strin
   await writeFile(path.join(OUT_DIR, "elementTypes.ts"), elementTypesTs)
 
   console.log(`generated: ${htmlNamesMerged.length} html, ${svgNames.length} svg, ${mathmlNames.length} mathml elements`)
+  console.log(`generated: ${svgDefinitions.size} svg elements with attribute types`)
   console.log(`generated: ${Object.keys(globalAttributes).length} global attributes, ${globalHandlers.length} global event handlers`)
 }
 
