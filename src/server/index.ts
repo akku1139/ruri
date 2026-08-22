@@ -3,6 +3,7 @@ import * as http from "node:http"
 import * as path from "node:path"
 import { fileURLToPath } from "node:url"
 
+export { collectStyles } from "../css.ts"
 export { renderToString } from "./renderToString.ts"
 export { ServerElement, ServerFragment } from "./element.ts"
 

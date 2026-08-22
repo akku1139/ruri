@@ -1,4 +1,4 @@
-import { createApp, renderToString } from "../../dist/server/index.js"
+import { collectStyles, createApp, renderToString } from "../../dist/server/index.js"
 import { TodoApp } from "./app.js"
 
 let nextId = 4
@@ -18,6 +18,7 @@ const page = (contentHtml, data) => `<!doctype html>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ruri · full-stack example</title>
+  <style data-ruri>${collectStyles()}</style>
   <style>
     :root {
       --bg: #0f0f13;
@@ -40,14 +41,7 @@ const page = (contentHtml, data) => `<!doctype html>
     .container { width: min(560px, 100% - 32px); padding: 48px 0; }
     .header h1 { margin: 0; font-size: 28px; letter-spacing: 0.5px; }
     .header .tagline { margin: 2px 0 24px; color: var(--muted); font-size: 14px; }
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 16px;
-    }
-    .card h2 { margin: 0 0 4px; font-size: 18px; }
+    h2 { margin: 0 0 4px; font-size: 18px; }
     .row { display: flex; gap: 8px; margin-top: 12px; }
     button {
       border: 1px solid var(--border);

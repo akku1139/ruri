@@ -22,7 +22,9 @@ document.body.append(app)
 - **Hyperscript tags** — `tags.div({...}, ...children)` proxies every HTML / SVG / MathML element with typed attributes.
 - **JSX** — set `jsxImportSource: "ruri"` and write TSX components.
 - **Auto cleanup** — `unmount()` releases signal subscriptions registered while rendering.
-- **Full-stack** — the same component code runs on the server (`renderToString`) and in the browser (`hydrate`), plus a tiny router / static file server / rpc layer on `node:http`.
+- **Lists** — `each()` renders reactive lists with keyed reconciliation.
+- **Full-stack** — the same component code runs on the server (`renderToString`) and in the browser (`hydrate`, which adopts the SSR DOM in place), plus a tiny router / static file server / rpc layer on `node:http`.
+- **Styles** — `css()` turns style objects into generated class names with SSR style collection.
 
 Zero runtime dependencies. The build output is plain ESM that runs in browsers and Node.js (22.6+) without a bundler.
 
@@ -76,6 +78,42 @@ dispose()
 ```
 
 Effects re-track their dependencies on every run, so conditional reads never leak subscriptions.
+
+### Lists
+
+```js
+import { each } from "ruri"
+
+const todos = new Signal([{ id: 1, text: "write docs" }])
+
+ul({},
+  each(todos, (todo, index) => li({}, `${index.value}: ${todo.text}`), { key: (todo) => todo.id }),
+)
+```
+
+`each` reconciles rows by key: existing rows keep their DOM nodes and are
+moved, updated or removed instead of being rebuilt. The render function
+receives a per-row index signal that tracks position across reorders.
+
+### Styling
+
+```js
+import { css, collectStyles } from "ruri"
+
+const card = css({ background: "#111", padding: "16px", borderRadius: "8px" })
+const wide = css({ fontSize: "24px" }, { media: "(min-width: 600px)" })
+
+div({ class: [card, wide] }, ...)
+```
+
+In the browser rules are injected once into a `<style data-ruri>` element.
+On the server, embed the collected rules after rendering:
+
+```js
+import { collectStyles } from "ruri/server"
+
+const page = `<html><head><style>${collectStyles()}</style></head>${body}</html>`
+```
 
 ### Reactive attributes and children
 
@@ -141,7 +179,7 @@ import { App } from "./app.js"
 hydrate(document.getElementById("app"), App)
 ```
 
-> Hydration currently re-renders the client tree into the server-rendered container. State can be passed through an inline `application/json` script tag (see the examples).
+Hydration replays the component against the server-rendered DOM: matching nodes are adopted in place, event handlers are attached and signals are bound to the existing text nodes and attributes (reactive text slots are marked with comments during SSR). State can be passed through an inline `application/json` script tag (see the examples). Any mismatch falls back to a full client-side render.
 
 ### Server functions (rpc)
 
@@ -178,6 +216,7 @@ pnpm example:fullstack   # http://localhost:8788/
 pnpm install
 pnpm test        # typecheck + unit/integration tests (node:test)
 pnpm build       # emits browser-ready ESM into dist/
+pnpm generate    # regenerate element/attribute/event types from the WHATWG spec
 ```
 
 ## Roadmap

@@ -11,8 +11,6 @@
 
 # derived (createMemo)
 
-https://zenn.dev/fj68/articles/da3458abab5d1c#creatememo
-
 ✅ Done — `derived` (alias `memo`) with automatic dependency tracking and disposal.
 
 # XML Namespaces support
@@ -22,20 +20,35 @@ names (`a`, `script`, `style`, `title`) can be forced with `xmlns`.
 
 # Types for attributes
 
-- ✅ Common event handlers, `data-*` / `aria-*` patterns, input/textarea/SVG basics
+✅ Done — generated from the WHATWG HTML spec (`whatwg/html` `source` file) via
+`pnpm generate`: every HTML element with its content attributes (including
+Boolean / enumerated / numeric value types), plus SVG / MathML element names
+and event handler tables from `@webref`. Hand written refinements layer on top.
+
 - https://developer.mozilla.org/ja/docs/Web/HTML/Attributes
 - https://github.com/honojs/hono/blob/main/src/jsx/intrinsic-elements.ts
 - https://github.com/preactjs/preact/blob/main/src/jsx.d.ts
 
 # Full-stack
 
-✅ Done — `renderToString`, hydration helper, `createApp` router with static
-files and rpc server functions.
+✅ Done — `renderToString`, fine-grained hydration (adopts the SSR DOM and
+binds signals/events in place, with automatic fallback to a client render on
+mismatch), `createApp` router with static files and rpc server functions.
+
+# Lists
+
+✅ Done — `each(items, render, { key })` with keyed reconciliation: rows keep
+their DOM nodes across reorders, and a per-row index Signal tracks position.
+
+# Styles
+
+✅ Done — `css(styleObject, { media })` returns a generated class name; rules
+are injected client-side once and collected on the server via `collectStyles()`.
 
 # Ideas
 
-- Fine-grained hydration (adopt the SSR DOM instead of re-rendering)
-- Keyed list reconciliation helpers (`each`)
-- Streaming SSR
-- CSS-in-JS style objects beyond the `style` attribute
-- Exhaustive attribute / event type coverage
+- Streaming SSR (needs an async/Suspense boundary design first)
+- SVG attribute types generated from the SVG 2 spec source (HTML is generated
+  from whatwg/html already; SVG/MathML attributes are still curated)
+- Fine-grained invalidation for `each` rows (per-item signals instead of
+  re-rendering a row when its data object is replaced)

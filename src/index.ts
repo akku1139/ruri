@@ -2,6 +2,8 @@ export { appendChildren, appendServerChildren, tagFactory } from "./tagFactory.t
 export type { Tag } from "./tagFactory.ts"
 export { tags } from "./tags.ts"
 export { Signal, batch, derived, effect, memo, onCleanup, untrack } from "./signal.ts"
+import { collectStyles, css, type CssOptions } from "./css.ts"
+export { collectStyles, css, type CssOptions }
 export { each, type EachOptions } from "./each.ts"
 export { hydrate, render, unmount } from "./render.ts"
 export { rpc } from "./rpc.ts"

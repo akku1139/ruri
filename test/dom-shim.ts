@@ -87,6 +87,10 @@ export class ShimElement {
     this.attributes.set(name, String(value))
   }
 
+  getAttribute(name: string): string | null {
+    return this.attributes.get(name) ?? null
+  }
+
   removeAttribute(name: string): void {
     this.attributes.delete(name)
   }
@@ -187,6 +191,12 @@ export class ShimElement {
 }
 
 export class ShimDocument {
+  head: ShimElement
+
+  constructor() {
+    this.head = new ShimElement("head")
+  }
+
   createElement(tagName: string): ShimElement {
     return new ShimElement(tagName)
   }

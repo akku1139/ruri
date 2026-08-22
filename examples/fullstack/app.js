@@ -1,6 +1,14 @@
-import { each, Signal, rpc, tags } from "../../dist/index.js"
+import { css, each, Signal, rpc, tags } from "../../dist/index.js"
 
 const { section, h2, form, input, button, ul, li, label, small } = tags
+
+const cardClass = css({
+  background: "#17171d",
+  border: "1px solid #26262f",
+  borderRadius: "12px",
+  padding: "20px",
+  marginBottom: "16px",
+})
 
 const TodoItem = (todo, todos) =>
   li({ class: todo.done ? "done" : "" },
@@ -46,7 +54,7 @@ export const TodoApp = (initialTodos) => {
     },
   }, textInput, button({ type: "submit", class: "primary" }, "Add"))
 
-  return section({ class: "card" },
+  return section({ class: cardClass },
     h2({}, "Todo"),
     small({ class: "meta" }, "server-rendered, hydrated on the client. works even without JavaScript."),
     addForm,
