@@ -3,6 +3,8 @@ import type {
   GeneratedGlobalAttributes,
   GeneratedGlobalEventHandlers,
   GeneratedHtmlElementAttributes,
+  GeneratedMathMLElementAttributes,
+  GeneratedSvgElementAttributes,
 } from "./generated/elementTypes.ts"
 import type { Signal } from "./signal.ts"
 
@@ -651,8 +653,10 @@ export type HTMLElementAttributeMap = ElementSpecificAttributes<{
 /**
  * Layers per-element attributes, strongest last:
  *   1. generated from the WHATWG HTML spec (`scripts/generate-types.mjs`)
- *   2. element specific events, generated from @webref/events
- *   3. hand written refinements (richer value types, pairings like meta name/content)
+ *   2. generated SVG attributes (w3c/svgwg definitions.xml)
+ *   3. generated MathML attributes (mathml-core spec)
+ *   4. element specific events, generated from @webref/events
+ *   5. hand written refinements (richer value types, pairings like meta name/content)
  */
 type MergeLeft<Base extends object, Override extends object> = {
   [K in keyof Base | keyof Override]?: K extends keyof Override
@@ -663,6 +667,12 @@ type MergeLeft<Base extends object, Override extends object> = {
 type GeneratedSpecific<T extends keyof AllElementTagNameMap> =
   T extends keyof GeneratedHtmlElementAttributes ? NonNullable<GeneratedHtmlElementAttributes[T]> : Record<never, never>
 
+type GeneratedSvgSpecific<T extends keyof AllElementTagNameMap> =
+  T extends keyof GeneratedSvgElementAttributes ? NonNullable<GeneratedSvgElementAttributes[T]> : Record<never, never>
+
+type GeneratedMathMLSpecific<T extends keyof AllElementTagNameMap> =
+  T extends keyof GeneratedMathMLElementAttributes ? NonNullable<GeneratedMathMLElementAttributes[T]> : Record<never, never>
+
 type GeneratedEvents<T extends keyof AllElementTagNameMap> =
   T extends keyof GeneratedElementEventHandlers ? NonNullable<GeneratedElementEventHandlers[T]> : Record<never, never>
 
@@ -670,7 +680,13 @@ type CuratedSpecific<T extends keyof AllElementTagNameMap> =
   T extends keyof HTMLElementAttributeMap ? HTMLElementAttributeMap[T] : Record<never, never>
 
 type SpecificAttributes<T extends keyof AllElementTagNameMap> =
-  MergeLeft<MergeLeft<GeneratedSpecific<T>, GeneratedEvents<T>>, CuratedSpecific<T>>
+  MergeLeft<
+    MergeLeft<
+      MergeLeft<MergeLeft<GeneratedSpecific<T>, GeneratedSvgSpecific<T>>, GeneratedMathMLSpecific<T>>,
+      GeneratedEvents<T>
+    >,
+    CuratedSpecific<T>
+  >
 
 type GlobalAttributes = MergeLeft<GeneratedGlobalAttributes, HTMLElementGlobalAttributes>
 

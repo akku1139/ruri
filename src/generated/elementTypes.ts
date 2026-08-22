@@ -3171,6 +3171,478 @@ export type GeneratedSvgElementAttributes = {
   }
 }
 
+export type GeneratedMathMLElementAttributes = {
+  "a"?: {
+    "autofocus"?: string
+    "class"?: string
+    "dir"?: string
+    "displaystyle"?: string
+    "id"?: string
+    "mathbackground"?: string
+    "mathcolor"?: string
+    "mathsize"?: string
+    "nonce"?: string
+    "scriptlevel"?: number | string
+    "style"?: string
+    "tabindex"?: string
+    "href"?: string
+    "target"?: string
+    "download"?: string
+    "ping"?: string
+    "rel"?: string
+    "hreflang"?: string
+    "type"?: string
+    "referrerpolicy"?: string
+  }
+  "annotation"?: {
+    "autofocus"?: string
+    "class"?: string
+    "dir"?: string
+    "displaystyle"?: string
+    "id"?: string
+    "mathbackground"?: string
+    "mathcolor"?: string
+    "mathsize"?: string
+    "nonce"?: string
+    "scriptlevel"?: number | string
+    "style"?: string
+    "tabindex"?: string
+    "encoding"?: string
+  }
+  "annotation-xml"?: {
+    "autofocus"?: string
+    "class"?: string
+    "dir"?: string
+    "displaystyle"?: string
+    "id"?: string
+    "mathbackground"?: string
+    "mathcolor"?: string
+    "mathsize"?: string
+    "nonce"?: string
+    "scriptlevel"?: number | string
+    "style"?: string
+    "tabindex"?: string
+    "encoding"?: string
+  }
+  "maction"?: {
+    "autofocus"?: string
+    "class"?: string
+    "dir"?: string
+    "displaystyle"?: string
+    "id"?: string
+    "mathbackground"?: string
+    "mathcolor"?: string
+    "mathsize"?: string
+    "nonce"?: string
+    "scriptlevel"?: number | string
+    "style"?: string
+    "tabindex"?: string
+    "actiontype"?: string
+    "selection"?: string
+  }
+  "math"?: {
+    "autofocus"?: string
+    "class"?: string
+    "dir"?: string
+    "displaystyle"?: string
+    "id"?: string
+    "mathbackground"?: string
+    "mathcolor"?: string
+    "mathsize"?: string
+    "nonce"?: string
+    "scriptlevel"?: number | string
+    "style"?: string
+    "tabindex"?: string
+    "display"?: "block" | "inline" | (string & {})
+    "alttext"?: string
+  }
+  "merror"?: {
+    "autofocus"?: string
+    "class"?: string
+    "dir"?: string
+    "displaystyle"?: string
+    "id"?: string
+    "mathbackground"?: string
+    "mathcolor"?: string
+    "mathsize"?: string
+    "nonce"?: string
+    "scriptlevel"?: number | string
+    "style"?: string
+    "tabindex"?: string
+  }
+  "mfrac"?: {
+    "autofocus"?: string
+    "class"?: string
+    "dir"?: string
+    "displaystyle"?: string
+    "id"?: string
+    "mathbackground"?: string
+    "mathcolor"?: string
+    "mathsize"?: string
+    "nonce"?: string
+    "scriptlevel"?: number | string
+    "style"?: string
+    "tabindex"?: string
+  }
+  "mi"?: {
+    "autofocus"?: string
+    "class"?: string
+    "dir"?: string
+    "displaystyle"?: string
+    "id"?: string
+    "mathbackground"?: string
+    "mathcolor"?: string
+    "mathsize"?: string
+    "nonce"?: string
+    "scriptlevel"?: number | string
+    "style"?: string
+    "tabindex"?: string
+  }
+  "mmultiscripts"?: {
+    "autofocus"?: string
+    "class"?: string
+    "dir"?: string
+    "displaystyle"?: string
+    "id"?: string
+    "mathbackground"?: string
+    "mathcolor"?: string
+    "mathsize"?: string
+    "nonce"?: string
+    "scriptlevel"?: number | string
+    "style"?: string
+    "tabindex"?: string
+  }
+  "mn"?: {
+    "autofocus"?: string
+    "class"?: string
+    "dir"?: string
+    "displaystyle"?: string
+    "id"?: string
+    "mathbackground"?: string
+    "mathcolor"?: string
+    "mathsize"?: string
+    "nonce"?: string
+    "scriptlevel"?: number | string
+    "style"?: string
+    "tabindex"?: string
+  }
+  "mo"?: {
+    "autofocus"?: string
+    "class"?: string
+    "dir"?: string
+    "displaystyle"?: string
+    "id"?: string
+    "mathbackground"?: string
+    "mathcolor"?: string
+    "mathsize"?: string
+    "nonce"?: string
+    "scriptlevel"?: number | string
+    "style"?: string
+    "tabindex"?: string
+    "form"?: string
+    "fence"?: string
+    "separator"?: string
+    "lspace"?: string
+    "rspace"?: string
+    "stretchy"?: string
+    "symmetric"?: string
+    "maxsize"?: string
+    "minsize"?: string
+    "largeop"?: string
+    "movablelimits"?: string
+  }
+  "mover"?: {
+    "autofocus"?: string
+    "class"?: string
+    "dir"?: string
+    "displaystyle"?: string
+    "id"?: string
+    "mathbackground"?: string
+    "mathcolor"?: string
+    "mathsize"?: string
+    "nonce"?: string
+    "scriptlevel"?: number | string
+    "style"?: string
+    "tabindex"?: string
+  }
+  "mpadded"?: {
+    "autofocus"?: string
+    "class"?: string
+    "dir"?: string
+    "displaystyle"?: string
+    "id"?: string
+    "mathbackground"?: string
+    "mathcolor"?: string
+    "mathsize"?: string
+    "nonce"?: string
+    "scriptlevel"?: number | string
+    "style"?: string
+    "tabindex"?: string
+    "width"?: number | string
+    "height"?: number | string
+    "depth"?: number | string
+    "lspace"?: string
+    "voffset"?: string
+  }
+  "mphantom"?: {
+    "autofocus"?: string
+    "class"?: string
+    "dir"?: string
+    "displaystyle"?: string
+    "id"?: string
+    "mathbackground"?: string
+    "mathcolor"?: string
+    "mathsize"?: string
+    "nonce"?: string
+    "scriptlevel"?: number | string
+    "style"?: string
+    "tabindex"?: string
+  }
+  "mprescripts"?: {
+    "autofocus"?: string
+    "class"?: string
+    "dir"?: string
+    "displaystyle"?: string
+    "id"?: string
+    "mathbackground"?: string
+    "mathcolor"?: string
+    "mathsize"?: string
+    "nonce"?: string
+    "scriptlevel"?: number | string
+    "style"?: string
+    "tabindex"?: string
+  }
+  "mroot"?: {
+    "autofocus"?: string
+    "class"?: string
+    "dir"?: string
+    "displaystyle"?: string
+    "id"?: string
+    "mathbackground"?: string
+    "mathcolor"?: string
+    "mathsize"?: string
+    "nonce"?: string
+    "scriptlevel"?: number | string
+    "style"?: string
+    "tabindex"?: string
+  }
+  "mrow"?: {
+    "autofocus"?: string
+    "class"?: string
+    "dir"?: string
+    "displaystyle"?: string
+    "id"?: string
+    "mathbackground"?: string
+    "mathcolor"?: string
+    "mathsize"?: string
+    "nonce"?: string
+    "scriptlevel"?: number | string
+    "style"?: string
+    "tabindex"?: string
+  }
+  "ms"?: {
+    "autofocus"?: string
+    "class"?: string
+    "dir"?: string
+    "displaystyle"?: string
+    "id"?: string
+    "mathbackground"?: string
+    "mathcolor"?: string
+    "mathsize"?: string
+    "nonce"?: string
+    "scriptlevel"?: number | string
+    "style"?: string
+    "tabindex"?: string
+  }
+  "mspace"?: {
+    "autofocus"?: string
+    "class"?: string
+    "dir"?: string
+    "displaystyle"?: string
+    "id"?: string
+    "mathbackground"?: string
+    "mathcolor"?: string
+    "mathsize"?: string
+    "nonce"?: string
+    "scriptlevel"?: number | string
+    "style"?: string
+    "tabindex"?: string
+    "width"?: number | string
+    "height"?: number | string
+    "depth"?: number | string
+  }
+  "msqrt"?: {
+    "autofocus"?: string
+    "class"?: string
+    "dir"?: string
+    "displaystyle"?: string
+    "id"?: string
+    "mathbackground"?: string
+    "mathcolor"?: string
+    "mathsize"?: string
+    "nonce"?: string
+    "scriptlevel"?: number | string
+    "style"?: string
+    "tabindex"?: string
+  }
+  "mstyle"?: {
+    "autofocus"?: string
+    "class"?: string
+    "dir"?: string
+    "displaystyle"?: string
+    "id"?: string
+    "mathbackground"?: string
+    "mathcolor"?: string
+    "mathsize"?: string
+    "nonce"?: string
+    "scriptlevel"?: number | string
+    "style"?: string
+    "tabindex"?: string
+  }
+  "msub"?: {
+    "autofocus"?: string
+    "class"?: string
+    "dir"?: string
+    "displaystyle"?: string
+    "id"?: string
+    "mathbackground"?: string
+    "mathcolor"?: string
+    "mathsize"?: string
+    "nonce"?: string
+    "scriptlevel"?: number | string
+    "style"?: string
+    "tabindex"?: string
+  }
+  "msubsup"?: {
+    "autofocus"?: string
+    "class"?: string
+    "dir"?: string
+    "displaystyle"?: string
+    "id"?: string
+    "mathbackground"?: string
+    "mathcolor"?: string
+    "mathsize"?: string
+    "nonce"?: string
+    "scriptlevel"?: number | string
+    "style"?: string
+    "tabindex"?: string
+  }
+  "msup"?: {
+    "autofocus"?: string
+    "class"?: string
+    "dir"?: string
+    "displaystyle"?: string
+    "id"?: string
+    "mathbackground"?: string
+    "mathcolor"?: string
+    "mathsize"?: string
+    "nonce"?: string
+    "scriptlevel"?: number | string
+    "style"?: string
+    "tabindex"?: string
+  }
+  "mtable"?: {
+    "autofocus"?: string
+    "class"?: string
+    "dir"?: string
+    "displaystyle"?: string
+    "id"?: string
+    "mathbackground"?: string
+    "mathcolor"?: string
+    "mathsize"?: string
+    "nonce"?: string
+    "scriptlevel"?: number | string
+    "style"?: string
+    "tabindex"?: string
+  }
+  "mtd"?: {
+    "autofocus"?: string
+    "class"?: string
+    "dir"?: string
+    "displaystyle"?: string
+    "id"?: string
+    "mathbackground"?: string
+    "mathcolor"?: string
+    "mathsize"?: string
+    "nonce"?: string
+    "scriptlevel"?: number | string
+    "style"?: string
+    "tabindex"?: string
+  }
+  "mtext"?: {
+    "autofocus"?: string
+    "class"?: string
+    "dir"?: string
+    "displaystyle"?: string
+    "id"?: string
+    "mathbackground"?: string
+    "mathcolor"?: string
+    "mathsize"?: string
+    "nonce"?: string
+    "scriptlevel"?: number | string
+    "style"?: string
+    "tabindex"?: string
+  }
+  "mtr"?: {
+    "autofocus"?: string
+    "class"?: string
+    "dir"?: string
+    "displaystyle"?: string
+    "id"?: string
+    "mathbackground"?: string
+    "mathcolor"?: string
+    "mathsize"?: string
+    "nonce"?: string
+    "scriptlevel"?: number | string
+    "style"?: string
+    "tabindex"?: string
+  }
+  "munder"?: {
+    "autofocus"?: string
+    "class"?: string
+    "dir"?: string
+    "displaystyle"?: string
+    "id"?: string
+    "mathbackground"?: string
+    "mathcolor"?: string
+    "mathsize"?: string
+    "nonce"?: string
+    "scriptlevel"?: number | string
+    "style"?: string
+    "tabindex"?: string
+  }
+  "munderover"?: {
+    "autofocus"?: string
+    "class"?: string
+    "dir"?: string
+    "displaystyle"?: string
+    "id"?: string
+    "mathbackground"?: string
+    "mathcolor"?: string
+    "mathsize"?: string
+    "nonce"?: string
+    "scriptlevel"?: number | string
+    "style"?: string
+    "tabindex"?: string
+    "accent"?: string
+    "accentunder"?: string
+  }
+  "semantics"?: {
+    "autofocus"?: string
+    "class"?: string
+    "dir"?: string
+    "displaystyle"?: string
+    "id"?: string
+    "mathbackground"?: string
+    "mathcolor"?: string
+    "mathsize"?: string
+    "nonce"?: string
+    "scriptlevel"?: number | string
+    "style"?: string
+    "tabindex"?: string
+  }
+}
+
 export type GeneratedGlobalEventHandlers = {
   "onabort"?: (event: Event) => unknown
   "onanimationcancel"?: (event: AnimationEvent) => unknown

@@ -20,6 +20,8 @@ const SOURCE_CACHE = path.join(CACHE_DIR, "html-source.html")
 const HTML_SOURCE_URL = "https://raw.githubusercontent.com/whatwg/html/main/source"
 const SVG_DEFINITIONS_CACHE = path.join(CACHE_DIR, "svg-definitions.xml")
 const SVG_DEFINITIONS_URL = "https://raw.githubusercontent.com/w3c/svgwg/master/master/definitions.xml"
+const MATHML_SPEC_CACHE = path.join(CACHE_DIR, "mathml-core.html")
+const MATHML_SPEC_URL = "https://raw.githubusercontent.com/w3c/mathml-core/main/spec.html"
 const OUT_DIR = path.resolve("src/generated")
 
 const stripTags = (html) =>
@@ -126,6 +128,75 @@ const parseSvgDefinitions = (xml) => {
       elements.set(name, attributes)
     }
   }
+  return elements
+}
+
+/**
+ * MathML Core (github.com/w3c/mathml-core, spec.html).
+ * Core deliberately keeps a small attribute set: shared global attributes plus
+ * a handful of element specific lists documented with bikeshed references
+ * like [^mo/form^].
+ */
+const NUMERIC_MATHML_ATTRIBUTES = new Set([
+  "depth", "height", "rowspan", "columnspan", "scriptlevel", "width",
+])
+
+const MATHML_ELEMENT_ATTRIBUTE_SECTIONS = [
+  ["mo", "mo-attributes"],
+  ["mpadded", "mpadded-attributes"],
+  ["mspace", "mspace-attributes"],
+  ["munderover", "munderover-attributes"],
+  ["mtd", "mtd-attributes"],
+  ["maction", "legacy-maction-attributes"],
+]
+
+const parseMathmlCore = (html) => {
+  const elements = new Map()
+  const add = (elementName, attributeName, type) => {
+    if(!elements.has(elementName)) {
+      elements.set(elementName, new Map())
+    }
+    const attributes = elements.get(elementName)
+    if(!attributes.has(attributeName)) {
+      attributes.set(attributeName, type)
+    }
+  }
+
+  const globalSection = html.match(/<h4>Global Attributes<\/h4>[\s\S]*?<ul>([\s\S]*?)<\/ul>/)
+  if(globalSection) {
+    for(const nameMatch of globalSection[1].matchAll(/<a><code>([a-z-]+)<\/code><\/a>/g)) {
+      const attributeName = nameMatch[1]
+      const type = NUMERIC_MATHML_ATTRIBUTES.has(attributeName) ? "number | string" : "string"
+      for(const elementName of ["__global__"]) {
+        add(elementName, attributeName, type)
+      }
+    }
+  }
+
+  for(const [elementName, anchor] of MATHML_ELEMENT_ATTRIBUTE_SECTIONS) {
+    const sectionStart = html.indexOf(`id="${anchor}"`)
+    if(sectionStart < 0) {
+      continue
+    }
+    const section = html.slice(sectionStart, sectionStart + 2500)
+    const referencePattern = new RegExp(`\\[\\^${elementName}\\/([a-z-]+)\\^]`, "g")
+    for(const reference of section.matchAll(referencePattern)) {
+      const attributeName = reference[1]
+      const type = NUMERIC_MATHML_ATTRIBUTES.has(attributeName) ? "number | string" : "string"
+      add(elementName, attributeName, type)
+    }
+  }
+
+  for(const attributeName of ["display", "alttext"]) {
+    add("math", attributeName, attributeName === "display" ? '"block" | "inline" | (string & {})' : "string")
+  }
+  for(const elementName of ["annotation", "annotation-xml"]) {
+    add(elementName, "encoding", "string")
+  }
+  for(const attributeName of ["href", "target", "download", "ping", "rel", "hreflang", "type", "referrerpolicy"]) {
+    add("a", attributeName, "string")
+  }
+
   return elements
 }
 
@@ -321,6 +392,24 @@ const collectEvents = async () => {
   return { global, specific }
 }
 
+const emitMathmlSections = (definitions, mathmlElementNames) => {
+  return mathmlElementNames
+      .sort()
+      .map((elementName) => {
+        const merged = new Map(definitions.get("__global__") ?? [])
+        for(const [attributeName, type] of definitions.get(elementName) ?? []) {
+          merged.set(attributeName, type)
+        }
+        if(merged.size === 0) {
+          return `  ${JSON.stringify(elementName)}?: Record<string, never>`
+        }
+        const lines = [...merged.entries()]
+            .map(([attributeName, type]) => `    ${JSON.stringify(attributeName)}?: ${type}`)
+            .join("\n")
+        return `  ${JSON.stringify(elementName)}?: {\n${lines}\n  }`
+      })
+}
+
 // ---------- emitters ----------
 
 const header = (lines) => [
@@ -345,13 +434,15 @@ const emitRecord = (name, entries, indent = "  ") => {
 }
 
 const main = async () => {
-  const [source, svgXml, webref, events] = await Promise.all([
+  const [source, svgXml, mathmlHtml, webref, events] = await Promise.all([
     fetchHtmlSource(),
     fetchCached(SVG_DEFINITIONS_URL, SVG_DEFINITIONS_CACHE),
+    fetchCached(MATHML_SPEC_URL, MATHML_SPEC_CACHE),
     collectWebrefNamespaces(),
     collectEvents(),
   ])
   const svgDefinitions = parseSvgDefinitions(svgXml)
+  const mathmlDefinitions = parseMathmlCore(mathmlHtml)
 
   const htmlElements = parseElements(source)
   const attributeIndex = parseAttributeIndex(source)
@@ -444,6 +535,10 @@ export const AMBIGUOUS_ELEMENT_NAMES: ReadonlySet<string> = new Set(${JSON.strin
     "export type GeneratedSvgElementAttributes = {",
     ...svgSections,
     "}",
+    "",
+    "export type GeneratedMathMLElementAttributes = {",
+    ...emitMathmlSections(mathmlDefinitions, webref.mathml.map((entry) => entry.name)),
+    "}",
   ]
 
   const eventHandlerLine = (type, eventInterface) =>
@@ -491,6 +586,7 @@ export const AMBIGUOUS_ELEMENT_NAMES: ReadonlySet<string> = new Set(${JSON.strin
 
   console.log(`generated: ${htmlNamesMerged.length} html, ${svgNames.length} svg, ${mathmlNames.length} mathml elements`)
   console.log(`generated: ${svgDefinitions.size} svg elements with attribute types`)
+  console.log(`generated: ${mathmlDefinitions.size} mathml elements with attribute types`)
   console.log(`generated: ${Object.keys(globalAttributes).length} global attributes, ${globalHandlers.length} global event handlers`)
 }
 
