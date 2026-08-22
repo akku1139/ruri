@@ -47,12 +47,22 @@ for(const suite of suites) {
     markdown += "_scenario failed_\n\n"
     continue
   }
-  const unit = suite.results[0].unit
-  const best = Math.min(...suite.results.map((result) => result.median))
+  const unit = suite.results[0]?.unit ?? "ms"
+  const numeric = suite.results.filter((result) =>
+      typeof result.median === "number" && !Number.isNaN(result.median))
+  const best = Math.min(...numeric.map((result) => result.median))
+  const sorted = [...suite.results].sort((a, b) => {
+    const aBad = typeof a.median !== "number" || Number.isNaN(a.median)
+    const bBad = typeof b.median !== "number" || Number.isNaN(b.median)
+    return aBad === bBad ? a.median - b.median : (aBad ? 1 : -1)
+  })
   markdown += `| framework | median (${unit}) | min | relative |\n|---|---:|---:|---:|\n`
-  for(const result of [...suite.results].sort((a, b) => a.median - b.median)) {
-    const relative = (result.median / best).toFixed(2)
-    markdown += `| ${result.framework} | ${result.median} | ${result.min} | ${relative}x |\n`
+  for(const result of sorted) {
+    const bad = typeof result.median !== "number" || Number.isNaN(result.median)
+    const relative = bad || best === 0 ? "" : `${(result.median / best).toFixed(2)}x`
+    const median = bad ? "n/a" : result.median
+    const min = bad ? "" : result.min
+    markdown += `| ${result.framework} | ${median} | ${min} | ${relative} |\n`
   }
   markdown += "\n"
 }

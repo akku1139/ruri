@@ -236,8 +236,12 @@ const reconcile = <T>(anchor: Comment, controller: EachController<T>): void => {
     }
   }
 
+  // Applying new items last lets replaced rows swap their node in place
+  // without interacting with the move pass above.
   for(let index = 0; index < nextRows.length; index++) {
-    nextRows[index]!.index.value = index
+    const row = nextRows[index]!
+    row.index.value = index
+    row.source.value = nextItems[index] as T
   }
 
   controller.rows = nextRows
