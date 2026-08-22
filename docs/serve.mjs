@@ -1,72 +1,55 @@
-import { collectStyles, createApp, renderToString } from "../dist/server/index.js"
-import { tags } from "../dist/index.js"
-import { headingsOf, renderMarkdown } from "./markdown.mjs"
+// Live docs dev server: pages and chunks are re-rendered from markdown on
+// every request, so editing docs/src is immediately visible.
+import { readFile } from "node:fs/promises"
+import { createApp } from "../../dist/server/index.js"
+import { renderDocument, renderShell } from "./layout.mjs"
+import { renderMarkdown } from "./markdown.mjs"
 
-const { div, h1, a } = tags
-
-// Docs are re-rendered on every request through ruri's SSR - the same
-// pipeline the static build uses, served live.
-const renderPage = (page) => {
-  const nav = div({ class: "sidebar" },
-      a({ class: "brand", href: "/" }, "ruri"),
-      div({ class: "nav" },
-          PAGES.map((entry) => a({ class: entry.slug === page.slug ? "active" : "", href: entry.slug === "index" ? "/" : `/${entry.slug}` }, entry.title)),
-      ),
-  )
-
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>ruri docs</title><link rel="stylesheet" href="/styles.css"></head><body>${
-      renderToString(
-          div({ class: "layout" },
-              nav,
-              div({ class: "content" },
-                  ...renderMarkdown(page.markdown),
-                  div({ class: "meta" }, "live SSR - edit docs/src and reload"),
-              ),
-          ),
-      )
-  }</body></html>`
+const readPage = async (slug) => {
+  const markdown = await readFile(new URL(`./src/pages/${slug}.md`, import.meta.url), "utf8")
+  return {
+    slug,
+    title: /^#\s+(.*)$/m.exec(markdown)?.[1] ?? slug,
+    headings: [...markdown.split("\n")]
+        .map((line) => /^##\s+(.*)$/.exec(line)?.[1])
+        .filter((heading) => heading !== undefined),
+    contentHtml: renderMarkdown(markdown).map((element) => renderToString(element)).join(""),
+  }
 }
 
 const app = createApp()
 
-const readPage = async (slug) => {
-  const { readFile } = await import("node:fs/promises")
-  return readFile(new URL(`./src/pages/${slug}.md`, import.meta.url), "utf8")
-}
+// framework bundle for playgrounds
+app.static(new URL("../../dist/", import.meta.url), { prefix: "/ruri" })
 
-const pageFor = (slug, markdownText) => ({
-  slug,
-  title: /^#\s+(.*)$/m.exec(markdownText)?.[1] ?? slug,
-  markdown: markdownText,
-})
+// assets straight from the source tree (editable without rebuild)
+app.get("/client.js", async () => new Response(
+    await readFile(new URL("./src/client.js", import.meta.url), "utf8"),
+    { headers: { "content-type": "text/javascript; charset=utf-8" } },
+))
+app.get("/styles.css", async () => new Response(
+    await readFile(new URL("./src/styles.css", import.meta.url), "utf8"),
+    { headers: { "content-type": "text/css; charset=utf-8" } },
+))
 
-app.get("/", async (context) => {
-  const markdown = await readPage("index")
-  const page = pageFor("index", markdown)
-  return context.html(renderPage(page))
-})
-
-app.get("/:page", async (context) => {
+// page chunks + documents + shell
+app.get("/chunks/:slug", async (context) => {
   try {
-    const markdown = await readPage(context.params.page)
-    const page = pageFor(context.params.page, markdown)
-    return context.html(renderPage(page))
+    return context.json(await readPage(context.params.slug))
+  } catch {
+    return context.json({ error: "not found" }, 404)
+  }
+})
+
+app.get("/", async () => renderShell(await readPage("index")))
+
+app.get("/:slug", async (context) => {
+  try {
+    return context.html(renderDocument(await readPage(context.params.slug)))
   } catch {
     return context.html("not found", 404)
   }
 })
-
-app.static(new URL("./src/", import.meta.url), { prefix: "/assets" })
-app.static(new URL("./dist/", import.meta.url))
-
-const PAGES = [
-  { slug: "index", title: "Introduction" },
-  { slug: "getting-started", title: "Getting started" },
-  { slug: "reactivity", title: "Reactivity" },
-  { slug: "lists", title: "Lists" },
-  { slug: "server", title: "Server & streaming" },
-  { slug: "styling", title: "Styling" },
-]
 
 app.listen(4173, () => {
   console.log("docs dev server → http://localhost:4173/")

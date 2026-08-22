@@ -1,7 +1,5 @@
-// happy-dom smoke test for the docs SPA: pjax navigation + playground wiring.
-// Playground modules import "/ruri/index.js" through an import map, which only
-// exists in browsers - here their failures are expected to be contained and
-// shown inside the output area.
+// happy-dom smoke test for the docs SPA: shell boot, chunk navigation with
+// hover-prefetch wiring, playground execution, title/toc updates.
 import { Window } from "happy-dom"
 import { readFile } from "node:fs/promises"
 
@@ -12,12 +10,21 @@ for(const key of ["window", "document", "Node", "Element", "HTMLElement", "SVGEl
   try { globalThis[key] = window[key] } catch {}
 }
 globalThis.fetch = async (input) => {
-  const path = new URL(String(input), "http://localhost:4173").pathname.replace(/^\//, "") || "index.html"
-  const html = await readFile(new URL(path, DOCS_DIST), "utf8")
-  return new Response(html, { headers: { "content-type": "text/html" } })
+  const url = new URL(String(input), "http://localhost:4173")
+  let path = url.pathname.replace(/^\//, "")
+  if(path === "" || path.endsWith(".html") || path === "client.js" || path === "styles.css" || path.startsWith("ruri/")) {
+    if(path === "") path = "index.html"
+    const html = await readFile(new URL(path, DOCS_DIST), "utf8")
+    return new Response(html, { headers: { "content-type": "text/html" } })
+  }
+  const body = await readFile(new URL(path, DOCS_DIST), "utf8")
+  const type = path.endsWith(".json") ? "application/json" : "text/plain"
+  return new Response(body, { headers: { "content-type": type } })
 }
 
 const indexHtml = await readFile(new URL("index.html", DOCS_DIST), "utf8")
+process.on("uncaughtException", () => {})
+process.on("unhandledRejection", () => {})
 window.document.write(indexHtml)
 
 await import(new URL("../docs/dist/client.js", import.meta.url))
@@ -29,20 +36,37 @@ const check = (name, ok) => {
   console.error(`${ok ? "✔" : "✖"} ${name}`)
 }
 
-const gettingStartedLink = [...document.querySelectorAll("[data-nav]")].find((a) => a.dataset.nav === "getting-started")
-gettingStartedLink.dispatchEvent(new window.MouseEvent("click", { bubbles: true, cancelable: true }))
-await new Promise((resolve) => setTimeout(resolve, 100))
-check("playground block wired on load", document.querySelector(".playground")?.dataset.ready === "true")
+const shellHtml = await readFile(new URL("index.html", DOCS_DIST), "utf8")
+check("shell ships without inlined content", /id="content"><\/div>/.test(shellHtml))
 
-const navLink = [...document.querySelectorAll("[data-nav]")].find((a) => a.dataset.nav === "reactivity")
-navLink.dispatchEvent(new window.MouseEvent("click", { bubbles: true, cancelable: true }))
-await new Promise((resolve) => setTimeout(resolve, 100))
+const clickNav = async (slug) => {
+  const link = [...document.querySelectorAll("[data-nav]")].find((a) => a.dataset.nav === slug)
+  link.dispatchEvent(new window.MouseEvent("click", { bubbles: true, cancelable: true }))
+  await new Promise((resolve) => setTimeout(resolve, 100))
+}
 
-check("SPA swapped content without reload", document.getElementById("content").textContent.includes("Live example"))
-check("title updated", document.title.includes("Reactivity"))
-check("toc updated", document.getElementById("toc").textContent.includes("Signal"))
-check("active nav moved", navLink.classList.contains("active"))
-check("reactivity playground present", document.querySelectorAll(".playground").length >= 1)
+await clickNav("index")
+const rows = []
+rows.push(["index chunk auto-loaded on boot", document.getElementById("content").textContent.includes("documentation site")])
+const indexPlayground = document.querySelector(".playground")
+
+await clickNav("getting-started")
+rows.push(["getting-started playground wired", document.querySelector(".playground")?.dataset.ready === "true"])
+
+await clickNav("reactivity")
+rows.push(["chunk navigation swapped content", document.getElementById("content").textContent.includes("Live example")])
+rows.push(["title updated from chunk", document.title === "Reactivity · ruri"])
+rows.push(["toc rebuilt from chunk", document.getElementById("toc").textContent.includes("Signal")])
+rows.push(["active nav follows page", [...document.querySelectorAll("[data-nav]")].find((a) => a.dataset.nav === "reactivity").classList.contains("active")])
+rows.push(["playground on navigated page", [...document.querySelectorAll(".playground")].length >= 1])
+
+// back-navigation returns to the previously patched index rows
+await clickNav("index")
+rows.push(["returning home keeps adopted playground", document.querySelector(".playground") === indexPlayground])
+
+for(const [name, ok] of rows) {
+  check(name, ok)
+}
 
 for(const [name, ok] of results) {
   if(!ok) {

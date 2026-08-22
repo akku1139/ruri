@@ -103,6 +103,23 @@ export class ServerComment {
   }
 }
 
+/** Emits pre-rendered HTML verbatim during serialization. */
+export class ServerRaw {
+  readonly html: string
+
+  constructor(html: string) {
+    this.html = html
+  }
+
+  serialize(): string {
+    return this.html
+  }
+
+  *serializeChunks(): Generator<string> {
+    yield this.html
+  }
+}
+
 export class ServerFragment {
   childNodes: Array<ServerElement | ServerFragment | ServerComment | string>
   signalChildren: Map<number, Signal<unknown>>
