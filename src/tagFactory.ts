@@ -1,6 +1,7 @@
 import { AMBIGUOUS_ELEMENT_NAMES, MATHML_ELEMENT_NAMES, SVG_ELEMENT_NAMES } from "./generated/namespaces.ts"
+import { hydrationState } from "./internal/hydrationState.ts"
 import { Signal } from "./signal.ts"
-import { ServerElement, ServerFragment } from "./server/element.ts"
+import { HYDRATION_MARKER, ServerComment, ServerElement, ServerFragment } from "./server/element.ts"
 import type { AllElementTagNameMap, Child, Children, ElementAttributes } from "./types.ts"
 import { registerCleanup } from "./utils/cleanup.ts"
 import { styleObjectToString } from "./utils/style.ts"
@@ -10,6 +11,22 @@ const SVG_NAMESPACE = "http://www.w3.org/2000/svg"
 const MATHML_NAMESPACE = "http://www.w3.org/1998/Math/MathML"
 
 const EVENT_ATTRIBUTE_PATTERN = /^on[a-z]+$/
+
+export class HydrationMismatchError extends Error {
+  constructor(message: string) {
+    super(`hydration mismatch: ${message}`)
+  }
+}
+
+/**
+ * While hydration is in progress the factories run in "record mode":
+ * they build lightweight server nodes that remember every prop (including
+ * event handlers and signals) and every reactive text slot. render.ts then
+ * transplants those bindings onto the real server-rendered DOM.
+ */
+const isHydrating = (): boolean => hydrationState.depth > 0
+
+type AnyElement = HTMLElement | SVGElement | MathMLElement
 
 const resolveNamespace = (tagName: string, xmlns: unknown): string => {
   if(xmlns === SVG_NAMESPACE || (SVG_ELEMENT_NAMES.has(tagName) && !AMBIGUOUS_ELEMENT_NAMES.has(tagName))) {
@@ -39,9 +56,7 @@ const stringifyChild = (value: unknown): string => {
 const isSkippedChild = (child: Child): child is null | undefined | boolean =>
   child === null || child === undefined || typeof child === "boolean"
 
-type AnyElement = HTMLElement | SVGElement | MathMLElement
-
-const applyAttribute = (element: AnyElement, name: string, value: unknown): void => {
+export const applyAttribute = (element: AnyElement, name: string, value: unknown): void => {
   if(value === null || value === undefined || value === false) {
     element.removeAttribute(name)
     return
@@ -69,7 +84,7 @@ const applyAttribute = (element: AnyElement, name: string, value: unknown): void
   element.setAttribute(name, stringifyChild(value))
 }
 
-const bindAttributeSignal = (element: AnyElement, name: string, signal: Signal<unknown>): void => {
+export const bindAttributeSignal = (element: AnyElement, name: string, signal: Signal<unknown>): void => {
   applyAttribute(element, name, signal.peek())
   const update = (): void => {
     applyAttribute(element, name, signal.peek())
@@ -118,16 +133,7 @@ export const appendChildren = (parent: Node & ParentNode, children: Children): v
   }
 }
 
-const buildClientElement = (
-  tagName: string,
-  namespace: string,
-  props: Record<string, unknown>,
-  children: Children,
-): AnyElement => {
-  const element: AnyElement = namespace === HTML_NAMESPACE
-    ? document.createElement(tagName)
-    : document.createElementNS(namespace, tagName) as AnyElement
-
+const applyProps = (element: AnyElement, props: Record<string, unknown>): void => {
   for(const [name, value] of Object.entries(props)) {
     if(value === undefined) {
       continue
@@ -142,7 +148,19 @@ const buildClientElement = (
     }
     applyAttribute(element, name, value)
   }
+}
 
+const buildClientElement = (
+  tagName: string,
+  namespace: string,
+  props: Record<string, unknown>,
+  children: Children,
+): AnyElement => {
+  const element: AnyElement = namespace === HTML_NAMESPACE
+    ? document.createElement(tagName)
+    : document.createElementNS(namespace, tagName) as AnyElement
+
+  applyProps(element, props)
   appendChildren(element, children)
   return element
 }
@@ -178,6 +196,9 @@ const appendServerChild = (parent: ServerElement | ServerFragment, child: Child)
     return
   }
   if(child instanceof Signal) {
+    const markerIndex = parent.childNodes.length
+    parent.signalChildren.set(markerIndex, child)
+    parent.append(new ServerComment(HYDRATION_MARKER))
     parent.append(stringifyChild(child.peek()))
     return
   }
@@ -206,6 +227,7 @@ const buildServerElement = (
     if(value === undefined) {
       continue
     }
+    element.hydrationProps.push([name, value])
     if(typeof value === "function") {
       continue
     }
@@ -245,7 +267,7 @@ export const tagFactory = <T extends keyof AllElementTagNameMap>(tagName: T): Ta
 
     const namespace = resolveNamespace(String(tagName), props.xmlns)
 
-    if(typeof document === "undefined") {
+    if(typeof document === "undefined" || isHydrating()) {
       return buildServerElement(String(tagName), namespace, props, children) as unknown as AllElementTagNameMap[T]
     }
     return buildClientElement(String(tagName), namespace, props, children) as unknown as AllElementTagNameMap[T]

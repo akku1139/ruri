@@ -44,10 +44,10 @@ test("class arrays and style objects are serialized", () => {
   assert.equal(html, `<div class="a b" style="color: red; background-color: blue; --x: 1"></div>`)
 })
 
-test("signals render their current value", () => {
+test("signals render their current value with a hydration marker", () => {
   const count = new Signal(7)
   const html = renderToString(tags.span({}, count))
-  assert.equal(html, "<span>7</span>")
+  assert.equal(html, "<span><!--ruri-->7</span>")
 })
 
 test("event handlers are ignored on the server", () => {

@@ -166,6 +166,10 @@ export const batch = <T>(fn: () => T): T => {
  * Runs `fn` immediately and re-runs it whenever any signal read inside changes.
  * Returns a disposer. Dependencies are re-tracked on every run and stale ones
  * are released automatically (no memory leak).
+ *
+ * While hydration is replaying the component, effects operate on the throwaway
+ * blueprint tree, so running them eagerly is safe - and necessary, because
+ * list-building effects must be part of the blueprint for the transplant to match.
  */
 export const effect = (fn: Subscriber): (() => void) => {
   const effectInstance = new ReactiveEffect(fn)
@@ -176,13 +180,18 @@ export const effect = (fn: Subscriber): (() => void) => {
 /**
  * Creates a memoized signal recomputed whenever its dependencies change.
  * Disposing the returned signal also stops the internal re-computation.
+ * Unlike {@link effect}, derived values are computed eagerly even while
+ * hydrating (they never touch the DOM).
  */
 export const derived = <T>(fn: () => T, equals?: Equals<T>): Signal<T> => {
   const signal = new Signal<T>(undefined as T, equals)
-  const disposeEffect = effect(() => {
+  const effectInstance = new ReactiveEffect(() => {
     signal.value = fn()
   })
-  derivedDisposers.set(signal, disposeEffect)
+  effectInstance.run()
+  derivedDisposers.set(signal, (): void => {
+    effectInstance.dispose()
+  })
   return signal
 }
 

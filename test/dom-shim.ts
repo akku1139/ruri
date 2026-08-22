@@ -1,6 +1,7 @@
-export type ShimNode = ShimElement | ShimText
+export type ShimNode = ShimElement | ShimText | ShimComment
 
 export class ShimText {
+  readonly nodeType = 3
   data: string
   parentNode: ShimElement | null
 
@@ -14,10 +15,26 @@ export class ShimText {
   }
 }
 
+export class ShimComment {
+  readonly nodeType = 8
+  data: string
+  parentNode: ShimElement | null
+
+  constructor(data: string) {
+    this.data = data
+    this.parentNode = null
+  }
+
+  get textContent(): string {
+    return ""
+  }
+}
+
 const VALUE_PROPERTY_TAGS = new Set(["input", "textarea", "select", "option", "button"])
 
 export class ShimElement {
   [key: string]: unknown
+  readonly nodeType = 1
   namespaceURI: string | null
   tagName: string
   attributes: Map<string, string>
@@ -51,7 +68,11 @@ export class ShimElement {
   append(...children: Array<ShimNode | string>): void {
     for(const child of children) {
       const node = typeof child === "string" ? new ShimText(child) : child
-      node.parentNode = this
+      if(node instanceof ShimElement) {
+        node.parentNode = this
+      } else {
+        ;(node as ShimText | ShimComment).parentNode = this
+      }
       this.childNodes.push(node)
     }
   }
@@ -70,7 +91,7 @@ export class ShimElement {
 
   replaceChildren(...children: Array<ShimNode>): void {
     for(const child of this.childNodes) {
-      child.parentNode = null
+      ;(child as { parentNode: ShimElement | null }).parentNode = null
     }
     this.childNodes = []
     this.append(...children)
@@ -120,11 +141,27 @@ export class ShimDocument {
     return new ShimText(data)
   }
 
-  createDocumentFragment(): ShimElement {
-    return new ShimElement("#document-fragment")
+  createComment(data: string): ShimComment {
+    return new ShimComment(data)
+  }
+
+  createDocumentFragment(): ShimDocumentFragment {
+    return new ShimDocumentFragment()
   }
 }
 
+export class ShimDocumentFragment extends ShimElement {
+  constructor() {
+    super("#document-fragment")
+  }
+}
+
+type GlobalWithDocument = typeof globalThis & { document?: unknown }
+
 export const installDom = (): void => {
-  globalThis.document = new ShimDocument() as unknown as Document
+  ;(globalThis as GlobalWithDocument).document = new ShimDocument() as unknown as Document
+}
+
+export const uninstallDom = (): void => {
+  delete (globalThis as unknown as Record<string, unknown>).document
 }

@@ -1,6 +1,7 @@
 import { ServerFragment } from "./server/element.ts"
 import { appendChildren, appendServerChildren, tagFactory } from "./tagFactory.ts"
 import type { AllElementTagNameMap, Child, Children, ElementAttributes } from "./types.ts"
+import { hydrationState } from "./internal/hydrationState.ts"
 
 export const Fragment: unique symbol = Symbol.for("ruri.Fragment")
 
@@ -39,7 +40,7 @@ export function jsx(
   delete rest.children
 
   if(type === Fragment) {
-    if(typeof document === "undefined") {
+    if(typeof document === "undefined" || hydrationState.depth > 0) {
       const fragment = new ServerFragment()
       appendServerChildren(fragment, children)
       return fragment as unknown as Node

@@ -1,3 +1,4 @@
+import type { Signal } from "../signal.ts"
 import { escapeHTML } from "../utils/escape.ts"
 
 // https://html.spec.whatwg.org/multipage/syntax.html#void-elements
@@ -9,6 +10,9 @@ const VOID_ELEMENTS = new Set([
 // https://html.spec.whatwg.org/multipage/syntax.html#the-syntax-of-the-html-elements
 const RAW_TEXT_ELEMENTS = new Set(["script", "style"])
 
+/** Comment data used to mark reactive text slots for hydration. */
+export const HYDRATION_MARKER = "ruri"
+
 /**
  * Lightweight DOM replacement used when Ruri runs outside a browser.
  * {@link import("./renderToString.ts").renderToString | renderToString} serializes
@@ -18,13 +22,19 @@ export class ServerElement {
   readonly tagName: string
   readonly namespaceURI: string | null
   readonly attributes: Map<string, string>
-  childNodes: Array<ServerElement | ServerFragment | string>
+  childNodes: Array<ServerElement | ServerFragment | ServerComment | string>
+  /** All props as passed, including event handlers and signals, for hydration replay. */
+  hydrationProps: Array<[string, unknown]>
+  /** Reactive text slots: childNodes index of the marker comment -> signal. */
+  signalChildren: Map<number, Signal<unknown>>
 
   constructor(tagName: string, namespaceURI: string | null = null) {
     this.tagName = tagName
     this.namespaceURI = namespaceURI
     this.attributes = new Map()
     this.childNodes = []
+    this.hydrationProps = []
+    this.signalChildren = new Map()
   }
 
   setAttribute(name: string, value: string): void {
@@ -35,11 +45,11 @@ export class ServerElement {
     this.attributes.delete(name)
   }
 
-  append(...children: Array<ServerElement | ServerFragment | string>): void {
+  append(...children: Array<ServerElement | ServerFragment | ServerComment | string>): void {
     this.childNodes.push(...children)
   }
 
-  replaceChildren(...children: Array<ServerElement | ServerFragment | string>): void {
+  replaceChildren(...children: Array<ServerElement | ServerFragment | ServerComment | string>): void {
     this.childNodes = []
     this.append(...children)
   }
@@ -66,14 +76,28 @@ export class ServerElement {
   }
 }
 
+export class ServerComment {
+  readonly data: string
+
+  constructor(data: string) {
+    this.data = data
+  }
+
+  serialize(): string {
+    return `<!--${this.data}-->`
+  }
+}
+
 export class ServerFragment {
-  childNodes: Array<ServerElement | ServerFragment | string>
+  childNodes: Array<ServerElement | ServerFragment | ServerComment | string>
+  signalChildren: Map<number, Signal<unknown>>
 
   constructor() {
     this.childNodes = []
+    this.signalChildren = new Map()
   }
 
-  append(...children: Array<ServerElement | ServerFragment | string>): void {
+  append(...children: Array<ServerElement | ServerFragment | ServerComment | string>): void {
     this.childNodes.push(...children)
   }
 
@@ -83,4 +107,3 @@ export class ServerFragment {
         .join("")
   }
 }
-
