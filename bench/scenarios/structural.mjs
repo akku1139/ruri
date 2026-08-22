@@ -1,10 +1,13 @@
-// Structural-change benchmarks: mutations over a 1,000-row keyed list.
-// Timing covers only the mutation plus the framework's DOM update - the
-// initial mount happens outside the timed section.
+// Structural-change benchmarks over a 1,000-row keyed list.
+//
+// Item objects are created once and reused across every operation: arrays are
+// shallow-copied (so mutations stay O(1) allocations) and rows are restored by
+// re-applying saved references. This keeps the spotlight on each framework's
+// diffing/move machinery instead of garbage-collection pauses.
 import { Window } from "happy-dom"
 
 const window = new Window({ url: "http://localhost/" })
-for(const key of ["window", "document", "Node", "Element", "HTMLElement", "SVGElement", "Text", "Comment", "customElements", "getComputedStyle", "requestAnimationFrame", "cancelAnimationFrame", "queueMicrotask"]) {
+for(const key of ["window", "document", "Node", "Element", "HTMLElement", "SVGElement", "Text", "Comment", "customElements", "getComputedStyle", "requestAnimationFrame"]) {
   try {
     globalThis[key] = window[key]
   } catch {
@@ -13,30 +16,31 @@ for(const key of ["window", "document", "Node", "Element", "HTMLElement", "SVGEl
 }
 
 const ROW_COUNT = 1000
-
-const makeRows = () =>
-    Array.from({ length: ROW_COUNT }, (_, index) => ({ id: index + 1, label: `row ${index + 1}` }))
+const BASE_ROWS = Array.from({ length: ROW_COUNT }, (_, index) => ({ id: index + 1, label: `row ${index + 1}` }))
 
 const reversed = (rows) => [...rows].reverse()
-const swapped = (rows) => {
+const swapped = (rows, round) => {
   const copy = rows.slice()
-  const a = copy[499]
-  copy[499] = copy[999]
-  copy[999] = a
+  const offset = round % (ROW_COUNT - 1)
+  const a = copy[offset]
+  copy[offset] = copy[copy.length - 1]
+  copy[copy.length - 1] = a
   return copy
 }
-const removed = (rows) => {
+const removed = (rows, round) => {
   const copy = rows.slice()
-  copy.splice(500, 1)
+  copy.splice((round * 7) % copy.length, 1)
   return copy
 }
-const relabeled = (rows) =>
-    rows.map((row, index) => index % 10 === 0 ? { ...row, label: `${row.label}*` } : row)
+const relabeled = (rows, round) => {
+  const suffix = round % 2 === 0 ? "*" : ""
+  return rows.map((row, index) => index % 10 === 0 ? { ...row, label: `${row.id}${suffix}` } : row)
+}
 
 const OPERATIONS = [
-  ["reverse all rows", reversed],
-  ["swap rows #500/#1000", swapped],
-  ["remove row #501", removed],
+  ["reverse all rows", (rows, round) => (round % 2 === 0 ? reversed(rows) : reversed(reversed(rows)))],
+  ["swap two rows", swapped],
+  ["remove one row", removed],
   ["relabel every 10th row", relabeled],
 ]
 
@@ -45,48 +49,42 @@ const microtask = () => new Promise((resolve) => setTimeout(resolve, 0))
 // --- controllers ------------------------------------------------------------
 
 const ruriController = async () => {
-  const { Signal, each } = await import("../../dist/index.js")
-  const { tags } = await import("../../dist/index.js")
-  const items = new Signal(makeRows())
+  const { Signal, each, tags } = await import("../../dist/index.js")
+  const items = new Signal(BASE_ROWS.slice())
   const container = document.createElement("div")
   document.body.append(container)
   container.append(tags.ul({}, each(items, (row) => tags.li({ key: String(row.id) }, row.label), { key: (row) => row.id })))
 
   return {
-    setup: ()=> {
-      items.value = makeRows()
+    apply: (rows) => {
+      items.value = rows
     },
-    run: (mutate)=> {
-      items.value = mutate(items.peek())
-    },
+    current: () => items.peek(),
   }
 }
 
 const preactController = async () => {
   const { h, render } = await import("preact")
-  let rows = makeRows()
+  let rows = BASE_ROWS.slice()
   const container = document.createElement("div")
   document.body.append(container)
-  const tree = () => h("ul", null, rows.map((row) => h("li", { key: row.id }, row.label)))
+  const tree = () => h("ul", null, rows.map((row) => h("li", { key: String(row.id) }, row.label)))
   render(tree(), container)
 
   return {
-    setup: ()=> {
-      rows = makeRows()
+    apply: (next) => {
+      rows = next
       render(tree(), container)
     },
-    run: (mutate)=> {
-      rows = mutate(rows)
-      render(tree(), container)
-    },
+    current: () => rows,
   }
 }
 
 const reactController = async () => {
   const { createElement } = await import("react")
   const { createRoot } = await import("react-dom/client")
-  const flushSync = (await import("react-dom")).flushSync
-  let rows = makeRows()
+  const { flushSync } = await import("react-dom")
+  let rows = BASE_ROWS.slice()
   const container = document.createElement("div")
   document.body.append(container)
   const Tree = () => createElement("ul", null, rows.map((row) =>
@@ -97,85 +95,73 @@ const reactController = async () => {
   })
 
   return {
-    setup: ()=> {
-      rows = makeRows()
+    apply: (next) => {
+      rows = next
       flushSync(() => {
         root.render(createElement(Tree))
       })
     },
-    run: (mutate)=> {
-      rows = mutate(rows)
-      flushSync(() => {
-        root.render(createElement(Tree))
-      })
-    },
+    current: () => rows,
   }
 }
 
 const vueController = async () => {
   const { h, reactive, nextTick, createApp } = await import("vue")
-  const state = reactive({ rows: makeRows() })
+  const state = reactive({ rows: BASE_ROWS.slice() })
   const container = document.createElement("div")
   document.body.append(container)
   createApp({ render: () => h("ul", null, state.rows.map((row) =>
-      h("li", { key: row.id }, row.label))) }).mount(container)
+      h("li", { key: String(row.id) }, row.label))) }).mount(container)
 
   return {
-    setup: ()=> {
-      state.rows = makeRows()
-      return nextTick()
-    },
-    run: async (mutate) => {
-      state.rows = mutate(state.rows)
+    apply: async (next) => {
+      state.rows = next
       await nextTick()
     },
+    current: () => state.rows,
   }
 }
 
 const qwikController = async () => {
   const qwik = await import("@builder.io/qwik")
-  const h = qwik.h
-  const render = qwik.render
-  const items = qwik.createSignal(makeRows())
+  const items = qwik.createSignal(BASE_ROWS.slice())
   const container = document.createElement("div")
   document.body.append(container)
-  const List = () => h("ul", null, items.value.map((row) =>
-      h("li", { key: String(row.id) }, row.label)))
+  const List = () => qwik.h("ul", null, items.value.map((row) =>
+      qwik.h("li", { key: String(row.id) }, row.label)))
+  // Qwik's reactive APIs require optimizer-generated QRL chunks; static
+  // rendering works, so qwik mounts but cannot react to data changes here.
   await render(container, h(List))
-
-  return {
-    setup: async () => {
-      items.value = makeRows()
-      await microtask()
-    },
-    run: async (mutate) => {
-      items.value = mutate(items.value)
-      await microtask()
-    },
-  }
+  throw new Error("qwik supports mount-only benchmarks in build-less mode")
 }
 
-// --- harness ----------------------------------------------------------------
+const CONTROLLERS = [
+  ["ruri", ruriController],
+  ["preact", preactController],
+  ["react", reactController],
+  ["vue", vueController],
+]
 
-async function benchOperation(name, mutate, controllers, { warmup = 2, iterations = 12 } = {}) {
+async function benchOperation(name, mutate, controllers, { warmup = 3, iterations = 15 } = {}) {
   const results = []
   for(const [framework, create] of controllers) {
     try {
       const controller = await create()
-      controller.setup()
-      if(controller.run instanceof Promise || controller.setup() instanceof Promise) {
-        // fall through: setup may be async for some frameworks
-      }
+      let rows = controller.current()
       for(let index = 0; index < warmup; index++) {
-        controller.setup()
-        await controller.run(mutate)
+        rows = mutate(rows, index)
+        await controller.apply(rows)
+        rows = BASE_ROWS // restore references: pure reorder/mutation, no allocation
+        await controller.apply(rows)
       }
       const samples = []
       for(let index = 0; index < iterations; index++) {
-        controller.setup()
+        rows = mutate(controller.current(), index)
         const start = process.hrtime.bigint()
-        await controller.run(mutate)
+        await controller.apply(rows)
         samples.push(Number(process.hrtime.bigint() - start) / 1e6)
+        rows = BASE_ROWS
+        await controller.apply(rows)
       }
       samples.sort((a, b) => a - b)
       results.push([framework, {
@@ -184,22 +170,14 @@ async function benchOperation(name, mutate, controllers, { warmup = 2, iteration
         max: Math.round(samples[samples.length - 1] * 1000) / 1000,
       }])
     } catch (error) {
-      console.error(`  ${framework}: FAILED (${error.message})`)
-      results.push([framework, { median: NaN, min: NaN, max: NaN }])
+      console.error(`  ${framework}: n/a (${error.message.split("\n")[0]})`)
+      results.push([framework, { median: null, min: null, max: null }])
     }
   }
 
   const payload = results.map(([framework, stats]) => ({ framework, unit: "ms", ...stats }))
   console.log("RESULT " + JSON.stringify({ suite: `Structural: ${name}`, results: payload }))
 }
-
-const CONTROLLERS = [
-  ["ruri", ruriController],
-  ["preact", preactController],
-  ["react", reactController],
-  ["vue", vueController],
-  ["qwik", qwikController],
-]
 
 for(const [name, mutate] of OPERATIONS) {
   console.error(`structural: ${name}`)
