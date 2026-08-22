@@ -19,7 +19,9 @@
     "build": "tsc --project tsconfig.build.json",
     "test": "pnpm run typecheck && pnpm run test:basic",
     "test:basic": "node --test \"test/*.test.ts\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "example:client": "pnpm run build && node examples/client/server.js",
+    "example:fullstack": "pnpm run build && node examples/fullstack/server.js"
   },
   "exports": {
     ".": {

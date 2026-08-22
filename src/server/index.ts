@@ -153,18 +153,27 @@ const respond = async (response: http.ServerResponse, result: Response | string)
   response.end(new Uint8Array(await result.arrayBuffer()))
 }
 
+const sendServerError = (response: http.ServerResponse): void => {
+  if(response.headersSent) {
+    response.end()
+    return
+  }
+  response.writeHead(500, { "content-type": "text/plain; charset=utf-8" })
+  response.end("Internal Server Error")
+}
+
 const serveStaticFile = async (
   pathname: string,
   rootDir: string,
   prefix: string,
   index: string,
 ): Promise<Response | null> => {
-  const normalizedPrefix = prefix === "/" ? "/" : `${prefix.replace(/\/$/, "")}/`
-  if(!pathname.startsWith(normalizedPrefix)) {
+  const base = prefix === "/" ? "" : prefix.replace(/\/$/, "")
+  if(!pathname.startsWith(`${base}/`)) {
     return null
   }
 
-  const relativePath = decodeURIComponent(pathname.slice(normalizedPrefix.length - 1))
+  const relativePath = decodeURIComponent(pathname.slice(base.length))
   let filePath = path.resolve(path.join(rootDir, relativePath))
   if(filePath !== rootDir && !filePath.startsWith(`${rootDir}${path.sep}`)) {
     return null
@@ -224,8 +233,7 @@ export const createApp = (): App => {
       response.end("Not Found")
     } catch(error) {
       console.error("[ruri/server]", error)
-      response.writeHead(500, { "content-type": "text/plain; charset=utf-8" })
-      response.end("Internal Server Error")
+      sendServerError(response)
     }
   }
 

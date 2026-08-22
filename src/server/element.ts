@@ -39,6 +39,11 @@ export class ServerElement {
     this.childNodes.push(...children)
   }
 
+  replaceChildren(...children: Array<ServerElement | ServerFragment | string>): void {
+    this.childNodes = []
+    this.append(...children)
+  }
+
   addEventListener(_type: string, _listener: EventListenerOrEventListenerObject): void {}
 
   serialize(): string {

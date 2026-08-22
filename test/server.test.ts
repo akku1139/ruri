@@ -31,6 +31,7 @@ describe("createApp", () => {
     await fs.writeFile(path.join(tempDir, "sub", "index.html"), "<p>sub</p>")
     await fs.writeFile(path.join(tempDir, "sub", "data.json"), '{"ok":true}')
     app.static(tempDir)
+    app.static(tempDir, { prefix: "/assets" })
 
     server = app.listen(0)
     const address = server.address() as AddressInfo
@@ -101,6 +102,15 @@ describe("createApp", () => {
     assert.equal(response.status, 200)
     assert.match(response.headers.get("content-type") ?? "", /application\/json/)
     assert.deepEqual(await response.json(), { ok: true })
+  })
+
+  test("static prefixes scope files under a path", async () => {
+    const response = await fetch(`${baseUrl}/assets/sub/data.json`)
+    assert.equal(response.status, 200)
+    assert.deepEqual(await response.json(), { ok: true })
+
+    const outside = await fetch(`${baseUrl}/assets`)
+    assert.equal(outside.status, 404)
   })
 
   test("directories resolve to their index file", async () => {
