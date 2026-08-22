@@ -37,6 +37,18 @@ const resolveNamespace = (tagName: string, xmlns: unknown): string => {
   return HTML_NAMESPACE
 }
 
+const namespaceCache = new Map<string, string>()
+
+/** Cached namespace resolution for the common case (no xmlns override). */
+const namespaceFor = (tagName: string): string => {
+  let namespace = namespaceCache.get(tagName)
+  if(namespace === undefined) {
+    namespace = resolveNamespace(tagName, undefined)
+    namespaceCache.set(tagName, namespace)
+  }
+  return namespace
+}
+
 const stringifyChild = (value: unknown): string => {
   if(typeof value === "string") {
     return value
@@ -245,7 +257,7 @@ const appendServerChild = (parent: ServerElement | ServerFragment, child: Child)
   }
   if(child instanceof Signal) {
     const markerIndex = parent.childNodes.length
-    parent.signalChildren.set(markerIndex, child)
+    ;(parent instanceof ServerElement ? parent : (parent as unknown as ServerElement)).ensureSignalChildren().set(markerIndex, child)
     parent.append(new ServerComment(HYDRATION_MARKER))
     parent.append(stringifyChild(child.peek()))
     return
@@ -258,8 +270,14 @@ const appendServerChild = (parent: ServerElement | ServerFragment, child: Child)
 }
 
 export const appendServerChildren = (parent: ServerElement | ServerFragment, children: Children): void => {
-  for(const child of children) {
-    appendServerChild(parent, child)
+  for(let index = 0; index < children.length; index++) {
+    const child = children[index]
+    // Fast path: plain strings are by far the most common child kind.
+    if(typeof child === "string") {
+      parent.append(child)
+      continue
+    }
+    appendServerChild(parent, child!)
   }
 }
 
@@ -271,16 +289,24 @@ const buildServerElement = (
 ): ServerElement => {
   const element = new ServerElement(tagName, namespace)
 
-  for(const [name, value] of Object.entries(props)) {
+  const hydrating = hydrationState.depth > 0
+  for(const name in props) {
+    const value = props[name]
     if(value === undefined) {
       continue
     }
-    element.hydrationProps.push([name, value])
+    if(hydrating) {
+      (element.hydrationProps ??= []).push([name, value])
+    }
     if(typeof value === "function") {
       continue
     }
     if(value instanceof Signal) {
       applyServerAttribute(element, name, value.peek())
+      continue
+    }
+    if(typeof value === "string") {
+      element.attributes[name] = value
       continue
     }
     applyServerAttribute(element, name, value)
@@ -318,7 +344,9 @@ export const tagFactory = <T extends keyof AllElementTagNameMap>(tagName: T): Ta
     const props = (hasProps ? firstArgument : EMPTY_PROPS) as Record<string, unknown>
     const children = (hasProps ? args.slice(1) : args) as Children
 
-    const namespace = resolveNamespace(tagNameString, props.xmlns)
+    const namespace = props.xmlns === undefined
+        ? namespaceFor(tagNameString)
+        : resolveNamespace(tagNameString, props.xmlns)
 
     if(typeof document === "undefined" || hydrationState.depth > 0) {
       return buildServerElement(tagNameString, namespace, props, children) as unknown as AllElementTagNameMap[T]

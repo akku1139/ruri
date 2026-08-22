@@ -128,7 +128,9 @@ const transplantList = (
 
     if(node instanceof ServerComment) {
       transplanter.expectMarker()
-      const signal = serverParent.signalChildren.get(index)
+      const signal = serverParent instanceof ServerElement
+          ? serverParent.signalChildren?.get(index)
+          : undefined
       if(signal) {
         // The marker and the following initial text form one reactive slot
         // sharing a single real text node.
@@ -194,7 +196,7 @@ const adoptEachList = (
 }
 
 const transplantElement = (real: Element, server: ServerElement): void => {
-  for(const [name, value] of server.hydrationProps) {
+  for(const [name, value] of server.hydrationProps ?? []) {
     if(value instanceof Signal) {
       bindAttributeSignal(real as never, name, value)
       continue

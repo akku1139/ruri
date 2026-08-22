@@ -13,6 +13,13 @@ const RAW_TEXT_ELEMENTS = new Set(["script", "style"])
 /** Comment data used to mark reactive text slots for hydration. */
 export const HYDRATION_MARKER = "ruri"
 
+export type ServerChildNode =
+    | ServerElement
+    | ServerFragment
+    | ServerComment
+    | ServerRaw
+    | string
+
 /**
  * Lightweight DOM replacement used when Ruri runs outside a browser.
  * {@link import("./renderToString.ts").renderToString | renderToString} serializes
@@ -21,50 +28,60 @@ export const HYDRATION_MARKER = "ruri"
 export class ServerElement {
   readonly tagName: string
   readonly namespaceURI: string | null
-  readonly attributes: Map<string, string>
-  childNodes: Array<ServerElement | ServerFragment | ServerComment | ServerRaw | string>
-  /** All props as passed, including event handlers and signals, for hydration replay. */
-  hydrationProps: Array<[string, unknown]>
-  /** Reactive text slots: childNodes index of the marker comment -> signal. */
-  signalChildren: Map<number, Signal<unknown>>
+  /** Plain object: cheaper than a Map for the handful of attributes most elements carry. */
+  readonly attributes: Record<string, string>
+  childNodes: Array<ServerChildNode>
+  /** All props as passed - recorded only while hydrating (see tagFactory). */
+  hydrationProps: Array<[string, unknown]> | null
+  signalChildren: Map<number, Signal<unknown>> | null
 
   constructor(tagName: string, namespaceURI: string | null = null) {
     this.tagName = tagName
     this.namespaceURI = namespaceURI
-    this.attributes = new Map()
+    this.attributes = {}
     this.childNodes = []
-    this.hydrationProps = []
-    this.signalChildren = new Map()
+    this.hydrationProps = null
+    this.signalChildren = null
+  }
+
+  ensureSignalChildren(): Map<number, Signal<unknown>> {
+    return this.signalChildren ??= new Map()
   }
 
   setAttribute(name: string, value: string): void {
-    this.attributes.set(name, value)
+    this.attributes[name] = value
   }
 
   removeAttribute(name: string): void {
-    this.attributes.delete(name)
+    delete this.attributes[name]
   }
 
-  append(...children: Array<ServerElement | ServerFragment | ServerComment | ServerRaw | string>): void {
+  append(...children: Array<ServerChildNode>): void {
     this.childNodes.push(...children)
   }
 
-  replaceChildren(...children: Array<ServerElement | ServerFragment | ServerComment | ServerRaw | string>): void {
+  replaceChildren(...children: Array<ServerChildNode>): void {
     this.childNodes = []
     this.append(...children)
   }
 
   addEventListener(_type: string, _listener: EventListenerOrEventListenerObject): void {}
 
+  private serializeAttributes(): string {
+    let attributes = ""
+    for(const name in this.attributes) {
+      const value = this.attributes[name]!
+      attributes += value === "" ? ` ${name}` : ` ${name}="${escapeHTML(value)}"`
+    }
+    return attributes
+  }
+
   /**
    * Serializes the element progressively: the opening tag is yielded before
    * the children, so consumers can start sending bytes right away.
    */
   *serializeChunks(): Generator<string> {
-    const attributes = [...this.attributes]
-        .map(([name, value]) => value === "" ? ` ${name}` : ` ${name}="${escapeHTML(value)}"`)
-        .join("")
-    yield `<${this.tagName}${attributes}>`
+    yield `<${this.tagName}${this.serializeAttributes()}>`
 
     if(VOID_ELEMENTS.has(this.tagName)) {
       return
@@ -83,7 +100,17 @@ export class ServerElement {
   }
 
   serialize(): string {
-    return [...this.serializeChunks()].join("")
+    let html = `<${this.tagName}${this.serializeAttributes()}>`
+    if(VOID_ELEMENTS.has(this.tagName)) {
+      return html
+    }
+    const isRawText = RAW_TEXT_ELEMENTS.has(this.tagName)
+    for(const child of this.childNodes) {
+      html += typeof child === "string"
+          ? (isRawText ? child : escapeHTML(child))
+          : child.serialize()
+    }
+    return `${html}</${this.tagName}>`
   }
 }
 
@@ -121,20 +148,22 @@ export class ServerRaw {
 }
 
 export class ServerFragment {
-  childNodes: Array<ServerElement | ServerFragment | ServerComment | ServerRaw | string>
-  signalChildren: Map<number, Signal<unknown>>
+  childNodes: Array<ServerChildNode>
 
   constructor() {
     this.childNodes = []
-    this.signalChildren = new Map()
   }
 
-  append(...children: Array<ServerElement | ServerFragment | ServerComment | string>): void {
+  append(...children: Array<ServerChildNode>): void {
     this.childNodes.push(...children)
   }
 
   serialize(): string {
-    return [...this.serializeChunks()].join("")
+    let html = ""
+    for(const child of this.childNodes) {
+      html += typeof child === "string" ? escapeHTML(child) : child.serialize()
+    }
+    return html
   }
 
   *serializeChunks(): Generator<string> {
