@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url"
 const SCENARIOS = [
   ["SSR", new URL("./scenarios/ssr.mjs", import.meta.url)],
   ["CSR (happy-dom)", new URL("./scenarios/csr.mjs", import.meta.url)],
+  ["Structural changes (happy-dom)", new URL("./scenarios/structural.mjs", import.meta.url)],
   ["Signals", new URL("./scenarios/signals.mjs", import.meta.url)],
 ]
 

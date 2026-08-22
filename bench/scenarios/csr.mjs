@@ -28,6 +28,9 @@ const effect = signalsModule.effect
 const ruri = await import("../../dist/index.js")
 const tags = ruri.tags
 const Signal = ruri.Signal
+const qwikModule = await import("@builder.io/qwik")
+const qwikH = qwikModule.h
+const qwikRender = qwikModule.render
 const libModule = await import("../lib.mjs")
 const ROWS = libModule.ROWS
 const runSuite = libModule.runSuite
@@ -41,6 +44,11 @@ const freshBodyChild = () => {
 }
 
 await runSuite("CSR: mount 1,000-row list", "ms", [
+  ["qwik", () => {
+    const container = freshBodyChild()
+    const list = qwikH("ul", null, ROWS.map((row) => qwikH("li", { key: String(row.id) }, row.label)))
+    return qwikRender(container, list)
+  }],
   ["ruri", () => {
     const { ul, li } = tags
     const container = freshBodyChild()
