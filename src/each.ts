@@ -170,12 +170,13 @@ function createRow<T>(
 
     if(rendered !== node && rendered !== null && typeof rendered === "object") {
       const parent = anchor.parentNode
+      const current = node as Node
       if(parent) {
-        parent.insertBefore(rendered as Node, node as Node)
-        parent.removeChild(node as Node)
+        parent.insertBefore(rendered as Node, current)
+        parent.removeChild(current)
       }
-      runCleanupsFor(node as object)
-      node = rendered
+      runCleanupsFor(current)
+      node = rendered as Node
     }
   })
 

@@ -6,6 +6,8 @@ import path from "node:path"
 import { after, before, describe, test } from "node:test"
 import type { AddressInfo } from "node:net"
 import { createApp } from "../src/server/index.ts"
+import { renderToString, renderToStream } from "../src/server/index.ts"
+import { tags } from "../src/tags.ts"
 
 describe("createApp", () => {
   const app = createApp()
@@ -16,6 +18,9 @@ describe("createApp", () => {
 
   before(async () => {
     app.get("/text", () => "plain text")
+    app.get("/stream", () => new Response(renderToStream(tags.p({}, "streamed")), {
+      headers: { "content-type": "text/html; charset=utf-8" },
+    }))
     app.get("/hello/:name", (context) => context.html(`hello ${context.params.name}`))
     app.get("/search", (context) => context.html(`q=${context.query.get("q") ?? ""}`))
     app.post("/echo", async (context) => context.json(await context.body.json()))
@@ -128,6 +133,12 @@ describe("createApp", () => {
   test("missing files fall through to 404", async () => {
     const response = await fetch(`${baseUrl}/does-not-exist.js`)
     assert.equal(response.status, 404)
+  })
+
+  test("streaming responses are piped without buffering", async () => {
+    const response = await fetch(`${baseUrl}/stream`)
+    assert.equal(response.status, 200)
+    assert.equal(await response.text(), renderToString(tags.p({}, "streamed")))
   })
 
   test("HEAD requests are answered by GET handlers", async () => {

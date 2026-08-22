@@ -56,23 +56,34 @@ export class ServerElement {
 
   addEventListener(_type: string, _listener: EventListenerOrEventListenerObject): void {}
 
-  serialize(): string {
+  /**
+   * Serializes the element progressively: the opening tag is yielded before
+   * the children, so consumers can start sending bytes right away.
+   */
+  *serializeChunks(): Generator<string> {
     const attributes = [...this.attributes]
         .map(([name, value]) => value === "" ? ` ${name}` : ` ${name}="${escapeHTML(value)}"`)
         .join("")
-    const openTag = `<${this.tagName}${attributes}>`
+    yield `<${this.tagName}${attributes}>`
 
     if(VOID_ELEMENTS.has(this.tagName)) {
-      return openTag
+      return
     }
 
-    const innerHTML = this.childNodes
-        .map((child) => typeof child === "string"
-            ? (RAW_TEXT_ELEMENTS.has(this.tagName) ? child : escapeHTML(child))
-            : child.serialize())
-        .join("")
+    const isRawText = RAW_TEXT_ELEMENTS.has(this.tagName)
+    for(const child of this.childNodes) {
+      if(typeof child === "string") {
+        yield isRawText ? child : escapeHTML(child)
+        continue
+      }
+      yield* child.serializeChunks()
+    }
 
-    return `${openTag}${innerHTML}</${this.tagName}>`
+    yield `</${this.tagName}>`
+  }
+
+  serialize(): string {
+    return [...this.serializeChunks()].join("")
   }
 }
 
@@ -85,6 +96,10 @@ export class ServerComment {
 
   serialize(): string {
     return `<!--${this.data}-->`
+  }
+
+  *serializeChunks(): Generator<string> {
+    yield `<!--${this.data}-->`
   }
 }
 
@@ -102,8 +117,16 @@ export class ServerFragment {
   }
 
   serialize(): string {
-    return this.childNodes
-        .map((child) => typeof child === "string" ? escapeHTML(child) : child.serialize())
-        .join("")
+    return [...this.serializeChunks()].join("")
+  }
+
+  *serializeChunks(): Generator<string> {
+    for(const child of this.childNodes) {
+      if(typeof child === "string") {
+        yield escapeHTML(child)
+        continue
+      }
+      yield* child.serializeChunks()
+    }
   }
 }

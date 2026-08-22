@@ -89,3 +89,40 @@ test("jsx Fragment serializes without a wrapper element", () => {
   )
   assert.equal(html, "<b>bold</b> tail")
 })
+
+test("renderToStream yields the same output as renderToString", async () => {
+  const { renderToStream } = await import("../src/server/renderToString.ts")
+  const tree = tags.ul({ class: "list" },
+    tags.li({}, "one"),
+    tags.li({ class: ["a", "b"] }, "two", tags.br()),
+  )
+
+  const stream = renderToStream(tree)
+  const decoder = new TextDecoder()
+  let streamed = ""
+  const reader = stream.getReader()
+  for(;;) {
+    const { done, value } = await reader.read()
+    if(done) break
+    streamed += decoder.decode(value)
+  }
+
+  assert.equal(streamed, renderToString(tree))
+})
+
+test("renderToStream emits the opening tag before the children", async () => {
+  const { renderToStream } = await import("../src/server/renderToString.ts")
+  const tree = tags.div({}, tags.span({}, "inner"))
+
+  const chunks: Array<string> = []
+  const decoder = new TextDecoder()
+  const reader = renderToStream(tree).getReader()
+  for(;;) {
+    const { done, value } = await reader.read()
+    if(done) break
+    chunks.push(decoder.decode(value))
+  }
+
+  assert.equal(chunks[0], "<div>")
+  assert.deepEqual(chunks.slice(-1), ["</div>"])
+})

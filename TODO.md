@@ -45,10 +45,28 @@ their DOM nodes across reorders, and a per-row index Signal tracks position.
 ✅ Done — `css(styleObject, { media })` returns a generated class name; rules
 are injected client-side once and collected on the server via `collectStyles()`.
 
+# Streaming SSR
+
+✅ Done (ordered streaming) — `renderToStream(node)` yields HTML chunks with
+the opening tag emitted before the children, and `createApp` pipes streaming
+response bodies straight to the socket. Out-of-order streaming with
+async boundaries would be the next step.
+
+# SVG attribute types
+
+✅ Done — generated from the SVG 2 machine readable definitions
+(github.com/w3c/svgwg, `master/definitions.xml`): element-specific attributes,
+shared attribute categories (aria / core / presentation / xlink) and geometry
+properties. MathML attribute types are still curated by hand.
+
+# Fine-grained invalidation for `each` rows
+
+✅ Done — every row owns a per-item Signal: replacing an item object for an
+existing key re-renders only that row (its root node is swapped in place),
+while all other rows keep their DOM nodes.
+
 # Ideas
 
-- Streaming SSR (needs an async/Suspense boundary design first)
-- SVG attribute types generated from the SVG 2 spec source (HTML is generated
-  from whatwg/html already; SVG/MathML attributes are still curated)
-- Fine-grained invalidation for `each` rows (per-item signals instead of
-  re-rendering a row when its data object is replaced)
+- Out-of-order streaming with async boundaries (Suspense-style)
+- MathML attribute types generated from the MathML Core spec
+- Per-property granularity inside rows (reactive item proxies)

@@ -4,7 +4,7 @@ import * as path from "node:path"
 import { fileURLToPath } from "node:url"
 
 export { collectStyles } from "../css.ts"
-export { renderToString } from "./renderToString.ts"
+export { renderToStream, renderToString } from "./renderToString.ts"
 export { ServerElement, ServerFragment } from "./element.ts"
 
 export type ResponseBody = Response | string | null
@@ -151,7 +151,21 @@ const respond = async (response: http.ServerResponse, result: Response | string)
     headers[key] = value
   })
   response.writeHead(result.status, headers)
-  response.end(new Uint8Array(await result.arrayBuffer()))
+
+  const body = result.body
+  if(body === null) {
+    response.end()
+    return
+  }
+  const reader = body.getReader()
+  for(;;) {
+    const { done, value } = await reader.read()
+    if(done) {
+      break
+    }
+    response.write(value)
+  }
+  response.end()
 }
 
 const sendServerError = (response: http.ServerResponse): void => {

@@ -203,6 +203,23 @@ const todo = await rpc("addTodo", "write tests")
 
 Calls are `POST /__rpc/<name>` with a JSON argument array.
 
+### Streaming
+
+```js
+import { createApp, renderToStream } from "ruri/server"
+
+createApp()
+  .get("/", () => new Response(renderToStream(App()), {
+    headers: { "content-type": "text/html; charset=utf-8" },
+  }))
+  .listen(3000)
+```
+
+`renderToStream(node)` emits HTML chunks progressively — the opening tag of an
+element is yielded before its children, so the first bytes reach the client as
+early as possible. Streaming response bodies are piped to the socket without
+buffering.
+
 ## Examples
 
 ```sh
