@@ -318,53 +318,83 @@ const longestIncreasingSubsequence = (values: Array<number>): Set<number> => {
 const reconcile = <T>(anchor: Comment, controller: EachController<T>): void => {
   const parent = anchor.parentNode
   const nextItems = controller.items.peek()
-
   const oldRows = controller.rows
-  const rowByKey = new Map(oldRows.map((row) => [row.key, row]))
-  const oldIndexByKey = new Map(oldRows.map((row, index) => [row.key, index]))
-  const remaining = new Set(oldRows)
 
-  const nextRows: Array<Row<T>> = []
-  const oldIndexByPosition: Array<number> = []
+  // Shallow-copied arrays share item objects, so most updates only touch a
+  // small region between an identical prefix and suffix. Trimming first keeps
+  // everything below proportional to the changed region.
+  const maxPrefix = Math.min(oldRows.length, nextItems.length)
+  let prefix = 0
+  while(prefix < maxPrefix && oldRows[prefix]!.key === keyOf(controller, nextItems[prefix] as T)) {
+    prefix++
+  }
+  const maxSuffix = Math.min(oldRows.length - prefix, nextItems.length - prefix)
+  let suffix = 0
+  while(
+    suffix < maxSuffix &&
+    oldRows[oldRows.length - 1 - suffix]!.key === keyOf(controller, nextItems[nextItems.length - 1 - suffix] as T)
+  ) {
+    suffix++
+  }
 
-  for(let index = 0; index < nextItems.length; index++) {
+  const middleOld = oldRows.slice(prefix, oldRows.length - suffix)
+
+  // Match middle rows by key.
+  const rowByKey = new Map(middleOld.map((row) => [row.key, row]))
+  const remaining = new Set(middleOld)
+
+  const middleNextRows: Array<Row<T>> = []
+  const reusedFlags: Array<boolean> = []
+  /** Old-order index (within the middle region) of every reused row. */
+  const reusedOldIndices: Array<number> = []
+
+  const middleOldIndexByKey = new Map(middleOld.map((row, index) => [row.key, index]))
+
+  for(let index = prefix; index < nextItems.length - suffix; index++) {
     const item = nextItems[index] as T
     const key = keyOf(controller, item)
     const existing = rowByKey.get(key)
     if(existing !== undefined) {
       remaining.delete(existing)
-      nextRows.push(existing)
-      oldIndexByPosition.push(oldIndexByKey.get(key) ?? -1)
+      middleNextRows.push(existing)
+      reusedFlags.push(true)
+      reusedOldIndices.push(middleOldIndexByKey.get(key) ?? -1)
       continue
     }
-    nextRows.push(createRow(controller, item, index, { anchor }))
-    oldIndexByPosition.push(-1)
+    middleNextRows.push(createRow(controller, item, index, { anchor }))
+    reusedFlags.push(false)
+    reusedOldIndices.push(-1)
   }
 
-  // Boundary after the row region, captured before removals detach nodes.
   const lastOldRow = oldRows[oldRows.length - 1]
-  let boundary: Node | null = lastOldRow !== undefined
-      ? lastOldRow.node.nextSibling
-      : anchor.nextSibling
+  // When suffix > 0 the region ends right before the first suffix row;
+  // otherwise it ends at the very end of the old row run (null reference).
+  let boundary: Node | null =
+      lastOldRow === undefined
+          ? anchor.nextSibling
+          : suffix > 0
+              ? oldRows[oldRows.length - suffix]!.node
+              : lastOldRow.node.nextSibling
 
   for(const row of remaining) {
     row.dispose()
     row.node.parentNode?.removeChild(row.node)
   }
 
-  // Minimal-move reorder: rows on the longest increasing subsequence of their
-  // old positions stay put; everything else is moved, with consecutive moved
-  // rows batched through a DocumentFragment.
-  if(parent) {
-    const reused: Array<{ position: number; oldIndex: number }> = []
-    for(let position = 0; position < nextRows.length; position++) {
-      const oldIndex = oldIndexByPosition[position]!
-      if(oldIndex >= 0) {
-        reused.push({ position, oldIndex })
+  // Minimal-move reorder within the middle: rows on the longest increasing
+  // subsequence stay anchored, consecutive movers batch into a fragment.
+  if(parent && middleNextRows.length > 0) {
+    const reusedPositions: Array<number> = []
+    const oldIndexSequence: Array<number> = []
+    for(let position = 0; position < middleNextRows.length; position++) {
+      if(!reusedFlags[position]) {
+        continue
       }
+      reusedPositions.push(position)
+      oldIndexSequence.push(reusedOldIndices[position] ?? -1)
     }
-    const keep = longestIncreasingSubsequence(reused.map((entry) => entry.oldIndex))
-    const keptPositions = new Set([...keep].map((seqIndex) => reused[seqIndex]!.position))
+    const keep = longestIncreasingSubsequence(oldIndexSequence)
+    const keptPositions = new Set([...keep].map((seqIndex) => reusedPositions[seqIndex]!))
 
     let pending: Array<Node> = []
     const flushPending = (): void => {
@@ -381,8 +411,8 @@ const reconcile = <T>(anchor: Comment, controller: EachController<T>): void => {
       pending = []
     }
 
-    for(let position = nextRows.length - 1; position >= 0; position--) {
-      const row = nextRows[position]!
+    for(let position = middleNextRows.length - 1; position >= 0; position--) {
+      const row = middleNextRows[position]!
       if(keptPositions.has(position)) {
         flushPending()
         boundary = row.node
@@ -392,6 +422,13 @@ const reconcile = <T>(anchor: Comment, controller: EachController<T>): void => {
     }
     flushPending()
   }
+
+  // Stitch prefix + reconciled middle + suffix back together.
+  const nextRows: Array<Row<T>> = [
+    ...oldRows.slice(0, prefix),
+    ...middleNextRows,
+    ...oldRows.slice(oldRows.length - suffix),
+  ]
 
   // Applying new items last lets replaced rows swap their node in place
   // without interacting with the move pass above.
