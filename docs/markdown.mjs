@@ -2,7 +2,7 @@
 // of markdown (headings, fenced code, lists, tables, blockquotes, inline
 // styles/links) into ruri elements. Text content is passed as plain strings,
 // so everything is escaped by the framework - no HTML injection.
-import { tags } from "../dist/index.js"
+import { ServerRaw, tags } from "../dist/index.js"
 
 const { blockquote, br, code, del, div, em, h1, h2, h3, h4, hr, li, ol, p, pre, span, strong, table, tbody, td, th, thead, tr, ul, a } = tags
 
@@ -45,7 +45,7 @@ let playgroundCounter = 0
 const splitTableRow = (line) =>
     line.replace(/^\||\|$/g, "").split("|").map((cell) => cell.trim())
 
-function* parseBlocks(lines) {
+async function* parseBlocks(lines, options) {
   let index = 0
   while(index < lines.length) {
     const line = lines[index]
@@ -72,8 +72,15 @@ function* parseBlocks(lines) {
       }
       index++
       playgroundCounter++
+      let codeElement = pre({ class: "pg-code" }, body.join("\n"))
+      if(options.highlight) {
+        const highlighted = await options.highlight(body.join("\n"), "ruri")
+        if(highlighted) {
+          codeElement = new ServerRaw(highlighted.replace('class="shiki', 'class="pg-code shiki'))
+        }
+      }
       yield div({ class: "playground" },
-          pre({ class: "pg-code" }, body.join("\n")),
+          codeElement,
           div({ class: "pg-view", id: `pg-view-${playgroundCounter}` },
               span({ class: "pg-hint" }, "running...")),
       )
@@ -89,7 +96,15 @@ function* parseBlocks(lines) {
         index++
       }
       index++
-      yield pre({ class: language ? `language-${language}` : "" }, body.join("\n"))
+      const source = body.join("\n")
+      if(options.highlight) {
+        const highlighted = await options.highlight(source, language)
+        if(highlighted) {
+          yield new ServerRaw(highlighted)
+          continue
+        }
+      }
+      yield pre({ class: language ? `language-${language}` : "" }, source)
       continue
     }
 
@@ -156,10 +171,18 @@ function* parseBlocks(lines) {
   }
 }
 
-/** Renders markdown text to an array of ruri block elements. */
-export const renderMarkdown = (markdown) => {
+/**
+ * Renders markdown text to an array of ruri block elements.
+ * Pass `options.highlight(code, lang)` (async, returns HTML or null) to get
+ * Shiki-highlighted code blocks.
+ */
+export const renderMarkdown = async (markdown, options = {}) => {
   playgroundCounter = 0
-  return [...parseBlocks(markdown.split("\n"))]
+  const blocks = []
+  for await(const block of parseBlocks(markdown.split("\n"), options)) {
+    blocks.push(block)
+  }
+  return blocks
 }
 
 export const slugify = (heading) =>

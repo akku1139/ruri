@@ -6,5 +6,8 @@
   "scripts": {
     "build": "node build.mjs",
     "dev": "node serve.mjs"
+  },
+  "dependencies": {
+    "shiki": "^4.4.3"
   }
 }

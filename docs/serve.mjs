@@ -3,6 +3,7 @@
 import { readFile } from "node:fs/promises"
 import { createApp } from "../../dist/server/index.js"
 import { renderDocument, renderShell } from "./layout.mjs"
+import { highlight } from "./highlight.mjs"
 import { renderMarkdown } from "./markdown.mjs"
 
 const readPage = async (slug) => {
@@ -13,7 +14,7 @@ const readPage = async (slug) => {
     headings: [...markdown.split("\n")]
         .map((line) => /^##\s+(.*)$/.exec(line)?.[1])
         .filter((heading) => heading !== undefined),
-    contentHtml: renderMarkdown(markdown).map((element) => renderToString(element)).join(""),
+    contentHtml: (await renderMarkdown(markdown, { highlight })).map((element) => renderToString(element)).join(""),
   }
 }
 

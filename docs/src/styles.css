@@ -48,3 +48,13 @@ footer { text-align: center; color: var(--muted); font-size: 13px; padding: 24px
 .pg-view { padding: 14px 16px; min-height: 20px; }
 .pg-hint { color: var(--muted); font-size: 13px; }
 .main { display: flex; gap: 40px; flex: 1; min-width: 0; }
+
+/* shiki */
+.content pre.shiki, .playground .pg-code {
+  background-color: var(--surface) !important;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  overflow-x: auto;
+}
+.content pre.shiki code, .pg-code code { font: 14px ui-monospace, SFMono-Regular, Menlo, monospace; }

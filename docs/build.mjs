@@ -2,6 +2,7 @@
 // docs/dist as an SPA shell + per-page documents + JSON chunks.
 import { copyFile, cp, mkdir, readdir, readFile, writeFile } from "node:fs/promises"
 import { renderToString } from "../dist/server/index.js"
+import { highlight } from "./highlight.mjs"
 import { renderDocument, renderShell } from "./layout.mjs"
 import { renderMarkdown } from "./markdown.mjs"
 
@@ -20,7 +21,7 @@ for(const file of pageFiles) {
     headings: [...markdown.split("\n")]
         .map((line) => /^##\s+(.*)$/.exec(line)?.[1])
         .filter((heading) => heading !== undefined),
-    contentHtml: renderMarkdown(markdown).map((element) => renderToString(element)).join(""),
+    contentHtml: (await renderMarkdown(markdown, { highlight })).map((element) => renderToString(element)).join(""),
   })
 }
 

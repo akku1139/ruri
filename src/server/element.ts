@@ -22,7 +22,7 @@ export class ServerElement {
   readonly tagName: string
   readonly namespaceURI: string | null
   readonly attributes: Map<string, string>
-  childNodes: Array<ServerElement | ServerFragment | ServerComment | string>
+  childNodes: Array<ServerElement | ServerFragment | ServerComment | ServerRaw | string>
   /** All props as passed, including event handlers and signals, for hydration replay. */
   hydrationProps: Array<[string, unknown]>
   /** Reactive text slots: childNodes index of the marker comment -> signal. */
@@ -45,11 +45,11 @@ export class ServerElement {
     this.attributes.delete(name)
   }
 
-  append(...children: Array<ServerElement | ServerFragment | ServerComment | string>): void {
+  append(...children: Array<ServerElement | ServerFragment | ServerComment | ServerRaw | string>): void {
     this.childNodes.push(...children)
   }
 
-  replaceChildren(...children: Array<ServerElement | ServerFragment | ServerComment | string>): void {
+  replaceChildren(...children: Array<ServerElement | ServerFragment | ServerComment | ServerRaw | string>): void {
     this.childNodes = []
     this.append(...children)
   }
@@ -121,7 +121,7 @@ export class ServerRaw {
 }
 
 export class ServerFragment {
-  childNodes: Array<ServerElement | ServerFragment | ServerComment | string>
+  childNodes: Array<ServerElement | ServerFragment | ServerComment | ServerRaw | string>
   signalChildren: Map<number, Signal<unknown>>
 
   constructor() {

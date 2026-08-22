@@ -9,9 +9,11 @@ const window = new Window({ url: "http://localhost:4173/index.html" })
 for(const key of ["window", "document", "Node", "Element", "HTMLElement", "SVGElement", "Text", "Comment", "DOMParser", "MouseEvent", "getComputedStyle", "requestAnimationFrame", "history", "location"]) {
   try { globalThis[key] = window[key] } catch {}
 }
+const fetchedPaths = []
 globalThis.fetch = async (input) => {
   const url = new URL(String(input), "http://localhost:4173")
-  let path = url.pathname.replace(/^\//, "")
+  const path = url.pathname.replace(/^\//, "")
+  fetchedPaths.push(path)
   if(path === "" || path.endsWith(".html") || path === "client.js" || path === "styles.css" || path.startsWith("ruri/")) {
     if(path === "") path = "index.html"
     const html = await readFile(new URL(path, DOCS_DIST), "utf8")
@@ -50,8 +52,19 @@ const rows = []
 rows.push(["index chunk auto-loaded on boot", document.getElementById("content").textContent.includes("documentation site")])
 const indexPlayground = document.querySelector(".playground")
 
+const chunkFetches = () => fetchedPaths.filter((path) => path.startsWith("chunks/"))
+rows.push(["only the active page chunk loads at boot", chunkFetches().every((path) => path === "chunks/index.json")])
+
 await clickNav("getting-started")
 rows.push(["getting-started playground wired", document.querySelector(".playground")?.dataset.ready === "true"])
+
+const stylingLink = [...document.querySelectorAll("[data-nav]")].find((a) => a.dataset.nav === "styling")
+stylingLink.dispatchEvent(new window.Event("pointerenter", { bubbles: true }))
+await new Promise((resolve) => setTimeout(resolve, 50))
+rows.push(["hover prefetches only the hovered page", chunkFetches().filter((path) => path.includes("styling")).length === 1])
+stylingLink.dispatchEvent(new window.MouseEvent("click", { bubbles: true, cancelable: true }))
+await new Promise((resolve) => setTimeout(resolve, 100))
+rows.push(["prefetched navigation swaps content", document.getElementById("content").textContent.includes("css()")])
 
 await clickNav("reactivity")
 rows.push(["chunk navigation swapped content", document.getElementById("content").textContent.includes("Live example")])

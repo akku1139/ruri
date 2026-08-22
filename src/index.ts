@@ -5,6 +5,7 @@ export { Signal, batch, derived, effect, memo, onCleanup, untrack } from "./sign
 import { collectStyles, css, type CssOptions } from "./css.ts"
 export { collectStyles, css, type CssOptions }
 export { each, type EachOptions } from "./each.ts"
+export { ServerRaw } from "./server/element.ts"
 export { hydrate, render, unmount } from "./render.ts"
 export { rpc } from "./rpc.ts"
 export { Fragment } from "./jsx-runtime.ts"
