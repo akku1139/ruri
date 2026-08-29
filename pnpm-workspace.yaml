@@ -3,5 +3,8 @@ packages:
   - "bench"
   - "docs"
 
+allowBuilds:
+  esbuild: set this to true or false
+
 ignoredBuiltDependencies:
   - esbuild
