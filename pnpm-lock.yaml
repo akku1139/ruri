@@ -16,7 +16,7 @@ importers:
         version: 26.2.0
       '@webref/elements':
         specifier: ^2.7.1
-        version: 2.7.1
+        version: 2.8.0
       '@webref/events':
         specifier: ^1.24.2
         version: 1.24.2
@@ -622,8 +622,8 @@ packages:
   '@vue/shared@3.5.41':
     resolution: {integrity: sha512-IOnwSCma8j+9xJT6b8H0dEYidC80NsYmNMlZxRsukYcSoGaDBohog5hDxzeUXdFeGWFA++vWvxqOmrr96VlqMA==}
 
-  '@webref/elements@2.7.1':
-    resolution: {integrity: sha512-ke5VQWxr7vGket8tObjgNrmQ/+BO7MY1XL9gb0auPnHRzW7EN1Xpv5O237glCd4HWRrro05fBpBFXTPHlb24pw==}
+  '@webref/elements@2.8.0':
+    resolution: {integrity: sha512-EWxcb3d2mkRU0zCfIX8no6xoywnUX3+Pxqhtt4xKwcb+vG4tQUlMZMd3THLH8M1Peg/5ssVRvlMEl/N5sHiFXw==}
 
   '@webref/events@1.24.2':
     resolution: {integrity: sha512-S3JHyiNM7zk0Y2WVmrOVCGXRxzEIWcw7dWEVpLCiWw5MhTaCOKimD/qHIqgBwOzVn0a5uOEGEQXbd2sHngfnug==}
@@ -1366,7 +1366,7 @@ snapshots:
 
   '@vue/shared@3.5.41': {}
 
-  '@webref/elements@2.7.1': {}
+  '@webref/elements@2.8.0': {}
 
   '@webref/events@1.24.2': {}
 
