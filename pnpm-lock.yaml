@@ -19,7 +19,7 @@ importers:
         version: 2.8.0
       '@webref/events':
         specifier: ^1.24.2
-        version: 1.24.2
+        version: 1.25.0
       happy-dom:
         specifier: ^20.11.6
         version: 20.11.13
@@ -628,8 +628,8 @@ packages:
   '@webref/elements@2.8.0':
     resolution: {integrity: sha512-EWxcb3d2mkRU0zCfIX8no6xoywnUX3+Pxqhtt4xKwcb+vG4tQUlMZMd3THLH8M1Peg/5ssVRvlMEl/N5sHiFXw==}
 
-  '@webref/events@1.24.2':
-    resolution: {integrity: sha512-S3JHyiNM7zk0Y2WVmrOVCGXRxzEIWcw7dWEVpLCiWw5MhTaCOKimD/qHIqgBwOzVn0a5uOEGEQXbd2sHngfnug==}
+  '@webref/events@1.25.0':
+    resolution: {integrity: sha512-oosECyL5oKs7pTRaNJpvSdiMaLrWHlBiyWVbUS2WIsDEgL3Ula4rktAjhgZ916NVq6fgXaRSzQ5QDjeNdbhtDQ==}
 
   bcp-47@2.1.0:
     resolution: {integrity: sha512-9IIS3UPrvIa1Ej+lVDdDwO7zLehjqsaByECw0bu2RRGP73jALm6FYbzI5gWbgHLvNdkvfXB5YrSbocZdOS0c0w==}
@@ -1375,7 +1375,7 @@ snapshots:
 
   '@webref/elements@2.8.0': {}
 
-  '@webref/events@1.24.2': {}
+  '@webref/events@1.25.0': {}
 
   bcp-47@2.1.0:
     dependencies:
