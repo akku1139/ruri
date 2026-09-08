@@ -452,21 +452,6 @@ const reconcile = <T>(anchor: Comment, controller: EachController<T>): void => {
     reuseFlagMap.set(middleNextRows[i]!, reusedFlags[i]!)
   }
 
-  // Shallow equality check for items with the same key
-  const itemsEqual = (a: T, b: T): boolean => {
-    if(a === b) return true
-    if(a === null || b === null || typeof a !== "object" || typeof b !== "object") return false
-    const keysA = Object.keys(a)
-    const keysB = Object.keys(b)
-    if(keysA.length !== keysB.length) return false
-    for(const key of keysA) {
-      if((a as Record<string, unknown>)[key] !== (b as Record<string, unknown>)[key]) {
-        return false
-      }
-    }
-    return true
-  }
-
   // Applying new items last lets replaced rows swap their node in place
   // without interacting with the move pass above.
   for(let index = 0; index < nextRows.length; index++) {
