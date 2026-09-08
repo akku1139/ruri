@@ -22,11 +22,10 @@ const rowIds = (shim: ShimElement): Array<string> =>
  * Test: Updating one item should NOT cause other rows to re-render
  */
 test("updating one item re-renders only that row", () => {
-  const items = new Signal<readonly Todo[]>([
-    { id: 1, text: "one" },
-    { id: 2, text: "two" },
-    { id: 3, text: "three" },
-  ])
+  const item1 = { id: 1, text: "one" }
+  const item2 = { id: 2, text: "two" }
+  const item3 = { id: 3, text: "three" }
+  const items = new Signal<readonly Todo[]>([item1, item2, item3])
 
   const renderCounts = new Map<number, number>()
   
@@ -44,11 +43,11 @@ test("updating one item re-renders only that row", () => {
   assert.deepEqual(renderCounts.get(2), 1)
   assert.deepEqual(renderCounts.get(3), 1)
 
-  // Update only item 2
+  // Update only item 2 with a new object; keep same references for 1 and 3
   items.value = [
-    { id: 1, text: "one" },
+    item1,
     { id: 2, text: "TWO!" },
-    { id: 3, text: "three" },
+    item3,
   ]
 
   // Only item 2 should have re-rendered
@@ -96,10 +95,9 @@ test("reordering items does not re-render rows", () => {
  * Test: Adding an item at the end should NOT cause existing rows to re-render
  */
 test("appending an item does not re-render existing rows", () => {
-  const items = new Signal<readonly Todo[]>([
-    { id: 1, text: "one" },
-    { id: 2, text: "two" },
-  ])
+  const item1 = { id: 1, text: "one" }
+  const item2 = { id: 2, text: "two" }
+  const items = new Signal<readonly Todo[]>([item1, item2])
 
   const renderCounts = new Map<number, number>()
   
@@ -114,10 +112,10 @@ test("appending an item does not re-render existing rows", () => {
 
   const initialCounts = new Map(renderCounts)
 
-  // Append new item
+  // Append new item; keep same references for existing
   items.value = [
-    { id: 1, text: "one" },
-    { id: 2, text: "two" },
+    item1,
+    item2,
     { id: 3, text: "three" },
   ]
 
@@ -131,11 +129,10 @@ test("appending an item does not re-render existing rows", () => {
  * Test: Removing an item should NOT cause remaining rows to re-render
  */
 test("removing an item does not re-render remaining rows", () => {
-  const items = new Signal<readonly Todo[]>([
-    { id: 1, text: "one" },
-    { id: 2, text: "two" },
-    { id: 3, text: "three" },
-  ])
+  const item1 = { id: 1, text: "one" }
+  const item2 = { id: 2, text: "two" }
+  const item3 = { id: 3, text: "three" }
+  const items = new Signal<readonly Todo[]>([item1, item2, item3])
 
   const renderCounts = new Map<number, number>()
   
@@ -150,10 +147,10 @@ test("removing an item does not re-render remaining rows", () => {
 
   const initialCounts = new Map(renderCounts)
 
-  // Remove middle item
+  // Remove middle item; keep same references for remaining
   items.value = [
-    { id: 1, text: "one" },
-    { id: 3, text: "three" },
+    item1,
+    item3,
   ]
 
   // Remaining rows should not have re-rendered
