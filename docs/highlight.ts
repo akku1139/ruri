@@ -24,8 +24,8 @@ const getHighlighter = async () => {
 }
 
 /** Returns highlighted HTML for the code, or null when the language is unknown. */
-export const highlight = async (code: string, lang: keyof typeof LANGUAGE_ALIASES) => {
-  const resolved = LANGUAGE_ALIASES[lang]
+export const highlight = async (code: string, lang: string) => {
+  const resolved = LANGUAGE_ALIASES[lang as keyof typeof LANGUAGE_ALIASES]
   if(!resolved) {
     return null
   }

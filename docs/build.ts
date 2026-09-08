@@ -1,6 +1,7 @@
 // Static site generator: renders docs/src/pages/*.md through ruri into
 // docs/dist as an SPA shell + per-page documents + JSON chunks.
 import { copyFile, cp, mkdir, readdir, readFile, writeFile } from "node:fs/promises"
+import { stripTypeScriptTypes } from "node:module"
 import { renderToString } from "../src/server/index.ts"
 import { highlight } from "./highlight.ts"
 import { renderDocument, renderShell } from "./layout.ts"
@@ -21,7 +22,7 @@ for(const file of pageFiles) {
     title: /^#\s+(.*)$/m.exec(markdown)?.[1] ?? slug,
     headings: [...markdown.split("\n")]
         .map((line) => /^##\s+(.*)$/.exec(line)?.[1])
-        .filter((heading) => heading !== undefined),
+        .filter((heading): heading is string => heading !== undefined),
     contentHtml: (await renderMarkdown(markdown, { highlight })).map((element) => renderToString(element)).join(""),
   })
 }
@@ -40,6 +41,12 @@ for(const page of pages) {
 
 // Playgrounds import "ruri" through the import map pointing at this copy.
 await cp(new URL("../dist/", import.meta.url), new URL("./ruri/", OUT_DIR), { recursive: true })
-await copyFile(new URL("./src/client.js", import.meta.url), new URL("client.js", OUT_DIR))
+
+// Browser cannot load .ts; strip types into client.js for the static site.
+const clientSource = await readFile(new URL("./src/client.ts", import.meta.url), "utf8")
+await writeFile(
+    new URL("client.js", OUT_DIR),
+    stripTypeScriptTypes(clientSource, { mode: "strip" }),
+)
 await copyFile(new URL("./src/styles.css", import.meta.url), new URL("styles.css", OUT_DIR))
 console.log(`docs: ${pages.length} pages -> docs/dist`)

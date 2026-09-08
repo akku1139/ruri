@@ -2,19 +2,20 @@
 // of markdown (headings, fenced code, lists, tables, blockquotes, inline
 // styles/links) into ruri elements. Text content is passed as plain strings,
 // so everything is escaped by the framework - no HTML injection.
-import { ServerRaw, tags } from "../src/index.ts"
+import { ServerRaw, tags, type Child } from "../src/index.ts"
 
 const { blockquote, br, code, del, div, em, h1, h2, h3, h4, hr, li, ol, p, pre, span, strong, table, tbody, td, th, thead, tr, ul, a } = tags
 
 const INLINE_PATTERN = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|~~[^~]+~~|\[[^\]]+\]\([^)]+\))/g
 
-const renderInline = (text: string) => {
-  const children = []
+const renderInline = (text: string): Child[] => {
+  const children: Child[] = []
   let lastIndex = 0
   for(const match of text.matchAll(INLINE_PATTERN)) {
-    const token = match[0]
-    if(match.index > lastIndex) {
-      children.push(text.slice(lastIndex, match.index))
+    const token = match[0]!
+    const matchIndex = match.index!
+    if(matchIndex > lastIndex) {
+      children.push(text.slice(lastIndex, matchIndex))
     }
     if(token.startsWith("**")) {
       children.push(strong({}, token.slice(2, -2)))
@@ -27,10 +28,10 @@ const renderInline = (text: string) => {
     } else {
       const link = /^\[([^\]]+)\]\(([^)]+)\)$/.exec(token)
       if(link) {
-        children.push(a({ href: link[2] }, link[1]))
+        children.push(a({ href: link[2]! }, link[1]!))
       }
     }
-    lastIndex = match.index + token.length
+    lastIndex = matchIndex + token.length
   }
   if(lastIndex < text.length) {
     children.push(text.slice(lastIndex))
@@ -38,17 +39,28 @@ const renderInline = (text: string) => {
   return children
 }
 
-const HEADINGS = { 1: h1, 2: h2, 3: h3, 4: h4 }
+const HEADINGS = {
+  1: h1,
+  2: h2,
+  3: h3,
+  4: h4,
+} as const
+
+type HeadingLevel = keyof typeof HEADINGS
+
+export type MarkdownOptions = {
+  highlight?: (code: string, lang: string) => Promise<string | null | undefined>
+}
 
 let playgroundCounter = 0
 
 const splitTableRow = (line: string) =>
     line.replace(/^\||\|$/g, "").split("|").map((cell) => cell.trim())
 
-async function* parseBlocks(lines: string[], options) {
+async function* parseBlocks(lines: string[], options: MarkdownOptions): AsyncGenerator<Child> {
   let index = 0
   while(index < lines.length) {
-    const line = lines[index]
+    const line = lines[index]!
 
     if(line.trim().length === 0) {
       index++
@@ -57,22 +69,23 @@ async function* parseBlocks(lines: string[], options) {
 
     const heading = /^(#{1,4})\s+(.*)$/.exec(line)
     if(heading) {
-      const text = heading[2].trim()
-      yield HEADINGS[heading[1].length]({ id: slugify(text) }, renderInline(text))
+      const level = heading[1]!.length as HeadingLevel
+      const text = heading[2]!.trim()
+      yield HEADINGS[level]({ id: slugify(text) }, ...renderInline(text))
       index++
       continue
     }
 
     if(line.startsWith("```ruri")) {
-      const body = []
+      const body: string[] = []
       index++
-      while(index < lines.length && !lines[index].startsWith("```")) {
-        body.push(lines[index])
+      while(index < lines.length && !lines[index]!.startsWith("```")) {
+        body.push(lines[index]!)
         index++
       }
       index++
       playgroundCounter++
-      let codeElement = pre({ class: "pg-code" }, body.join("\n"))
+      let codeElement: Child = pre({ class: "pg-code" }, body.join("\n"))
       if(options.highlight) {
         const highlighted = await options.highlight(body.join("\n"), "ruri")
         if(highlighted) {
@@ -89,10 +102,10 @@ async function* parseBlocks(lines: string[], options) {
 
     if(line.startsWith("```")) {
       const language = line.slice(3).trim()
-      const body = []
+      const body: string[] = []
       index++
-      while(index < lines.length && !lines[index].startsWith("```")) {
-        body.push(lines[index])
+      while(index < lines.length && !lines[index]!.startsWith("```")) {
+        body.push(lines[index]!)
         index++
       }
       index++
@@ -115,25 +128,25 @@ async function* parseBlocks(lines: string[], options) {
     }
 
     if(line.startsWith("> ")) {
-      const body = []
-      while(index < lines.length && lines[index].startsWith("> ")) {
-        body.push(...renderInline(lines[index].slice(2)))
+      const body: Child[] = []
+      while(index < lines.length && lines[index]!.startsWith("> ")) {
+        body.push(...renderInline(lines[index]!.slice(2)))
         body.push(br({}))
         index++
       }
-      yield blockquote({}, body)
+      yield blockquote({}, ...body)
       continue
     }
 
     if(/^\s*\|.*\|\s*$/.test(line) && /^\s*\|[\s|:-]+\|\s*$/.test(lines[index + 1] ?? "")) {
-      const headerCells = splitTableRow(line).map((cell) => th({}, renderInline(cell)))
+      const headerCells = splitTableRow(line).map((cell) => th({}, ...renderInline(cell)))
       index += 2
-      const bodyRows = []
-      while(index < lines.length && /^\s*\|.*\|\s*$/.test(lines[index])) {
-        bodyRows.push(tr({}, splitTableRow(lines[index]).map((cell) => td({}, renderInline(cell)))))
+      const bodyRows: Child[] = []
+      while(index < lines.length && /^\s*\|.*\|\s*$/.test(lines[index]!)) {
+        bodyRows.push(tr({}, ...splitTableRow(lines[index]!).map((cell) => td({}, ...renderInline(cell)))))
         index++
       }
-      yield table({}, thead({}, tr({}, headerCells)), tbody({}, bodyRows))
+      yield table({}, thead({}, tr({}, ...headerCells)), tbody({}, ...bodyRows))
       continue
     }
 
@@ -141,29 +154,35 @@ async function* parseBlocks(lines: string[], options) {
     if(listMatch) {
       const ordered = /\d+\./.test(listMatch[2]!)
       const indent = listMatch[1]!.length
-      const items = []
+      const items: Child[] = []
       while(index < lines.length) {
-        const itemMatch = /^(\s*)([-*]|\d+\.)\s+(.*)$/.exec(lines[index])
-        if(!itemMatch || itemMatch[1].length !== indent) {
+        const itemMatch = /^(\s*)([-*]|\d+\.)\s+(.*)$/.exec(lines[index]!)
+        if(!itemMatch || itemMatch[1]!.length !== indent) {
           break
         }
-        items.push(li({}, renderInline(itemMatch[3])))
+        items.push(li({}, ...renderInline(itemMatch[3]!)))
         index++
       }
-      yield ordered ? ol({}, items) : ul({}, items)
+      yield ordered ? ol({}, ...items) : ul({}, ...items)
       continue
     }
 
-    const paragraphLines = []
-    while(index < lines.length && lines[index].trim().length > 0
-        && !lines[index].startsWith("#") && !lines[index].startsWith("```")
-        && !lines[index].startsWith("> ") && !/^(\s*)([-*]|\d+\.)\s+/.test(lines[index])
-        && !/^\s*\|.*\|\s*$/.test(lines[index])) {
-      paragraphLines.push(lines[index])
+    const paragraphLines: string[] = []
+    while(index < lines.length) {
+      const current = lines[index]!
+      if(current.trim().length === 0
+          || current.startsWith("#")
+          || current.startsWith("```")
+          || current.startsWith("> ")
+          || /^(\s*)([-*]|\d+\.)\s+/.test(current)
+          || /^\s*\|.*\|\s*$/.test(current)) {
+        break
+      }
+      paragraphLines.push(current)
       index++
     }
     if(paragraphLines.length > 0) {
-      yield p({}, renderInline(paragraphLines.join(" ")))
+      yield p({}, ...renderInline(paragraphLines.join(" ")))
       continue
     }
 
@@ -176,9 +195,9 @@ async function* parseBlocks(lines: string[], options) {
  * Pass `options.highlight(code, lang)` (async, returns HTML or null) to get
  * Shiki-highlighted code blocks.
  */
-export const renderMarkdown = async (markdown: string, options: Record<string, unknown> = {}) => {
+export const renderMarkdown = async (markdown: string, options: MarkdownOptions = {}): Promise<Child[]> => {
   playgroundCounter = 0
-  const blocks = []
+  const blocks: Child[] = []
   for await(const block of parseBlocks(markdown.split("\n"), options)) {
     blocks.push(block)
   }
@@ -189,7 +208,7 @@ export const slugify = (heading: string) =>
     heading.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
 
 /** Extracts `## Heading` titles for the page navigation. */
-export const headingsOf = (markdown: string) =>
+export const headingsOf = (markdown: string): string[] =>
     markdown.split("\n")
         .map((line) => /^(##)\s+(.*)$/.exec(line)?.[2])
-        .filter((title) => title !== undefined)
+        .filter((title): title is string => title !== undefined)

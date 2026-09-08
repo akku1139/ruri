@@ -1,6 +1,6 @@
 // Shared layout for the static build and the dev server.
 import { renderToString, ServerRaw } from "../src/server/index.ts"
-import { tags } from "../src/index.js"
+import { tags } from "../src/index.ts"
 import { slugify } from "./markdown.ts"
 
 const { a, aside, body, div, footer, head, html, main, meta, nav, span, link, script, title: titleTag } = tags

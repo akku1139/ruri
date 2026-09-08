@@ -1,14 +1,14 @@
 // Client runtime for the docs: SPA navigation over per-page JSON chunks with
 // hover prefetching, plus live ruri playgrounds.
+import type { PageDataJson } from "../types.ts"
+
 const CONTENT_ID = "content"
 const TOC_ID = "toc"
 
-/** @param { string } heading */
-const slugify = (heading) =>
+const slugify = (heading: string) =>
     heading.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
 
-/** @param { string } url */
-const slugFromUrl = (url) => {
+const slugFromUrl = (url: string) => {
   const pathname = new URL(url, location.href).pathname
   const withoutFile = pathname.replace(/\/index\.html$/, "/").replace(/\.html$/, "")
   const slug = withoutFile.replace(/^\//, "")
@@ -17,13 +17,9 @@ const slugFromUrl = (url) => {
 
 // --- page chunks ------------------------------------------------------------
 
-const chunkCache = new Map()
+const chunkCache = new Map<string, Promise<PageDataJson> | PageDataJson>()
 
-/**
- * @param { string } slug
- * @returns { Promise<import('../types.ts').PageDataJson> }
- */
-const fetchChunk = async (slug) => {
+const fetchChunk = async (slug: string): Promise<PageDataJson> => {
   if(!slug) {
     return Promise.reject(new Error("no slug"))
   }
@@ -35,7 +31,7 @@ const fetchChunk = async (slug) => {
     if(!response.ok) {
       throw new Error(`HTTP ${response.status}`)
     }
-    const page = await response.json()
+    const page = await response.json() as PageDataJson
     chunkCache.set(slug, page)
     return page
   })
@@ -44,16 +40,14 @@ const fetchChunk = async (slug) => {
   return promise
 }
 
-/** @param { string } slug */
-export const prefetchPage = (slug) => {
+export const prefetchPage = (slug: string) => {
   if(!slug) {
     return
   }
   void fetchChunk(slug).catch(() => {})
 }
 
-/** @param { string } heading */
-const tocLink = (heading) => {
+const tocLink = (heading: string) => {
   const link = document.createElement("a")
   link.className = "toc-item"
   link.href = `#${slugify(heading)}`
@@ -61,8 +55,7 @@ const tocLink = (heading) => {
   return link
 }
 
-/** @param { import('../types.ts').PageDataJson } page */
-const applyPage = (page) => {
+const applyPage = (page: PageDataJson) => {
   const content = document.getElementById(CONTENT_ID)
   if(!content) {
     return
@@ -75,7 +68,7 @@ const applyPage = (page) => {
   }
 
   document.title = `${page.title} · ruri`
-  for(const link of document.querySelectorAll("[data-nav]")) {
+  for(const link of document.querySelectorAll<HTMLElement>("[data-nav]")) {
     link.classList.toggle("active", link.dataset.nav === page.slug)
   }
 
@@ -84,7 +77,7 @@ const applyPage = (page) => {
   window.scrollTo?.({ top: 0 })
 }
 
-const navigate = async (slug, { push = true } = {}) => {
+const navigate = async (slug: string, { push = true }: { push?: boolean } = {}) => {
   try {
     const page = await fetchChunk(slug)
     applyPage(page)
@@ -98,9 +91,8 @@ const navigate = async (slug, { push = true } = {}) => {
 
 // --- link wiring ------------------------------------------------------------
 
-/** @param { Document } root */
-const annotatePageLinks = (root) => {
-  for(const link of root.querySelectorAll("a[href]")) {
+const annotatePageLinks = (root: ParentNode) => {
+  for(const link of root.querySelectorAll<HTMLAnchorElement>("a[href]")) {
     if(link.dataset.page) {
       continue
     }
@@ -108,8 +100,8 @@ const annotatePageLinks = (root) => {
     if(href.startsWith("#") || (!link.pathname.endsWith(".html") && link.pathname !== "/" && link.pathname !== "")) {
       continue
     }
-    if(link.origin === location.origin || link.getAttribute("href").startsWith("/")) {
-      link.dataset.page = slugFromUrl(link.getAttribute("href"))
+    if(link.origin === location.origin || href.startsWith("/")) {
+      link.dataset.page = slugFromUrl(href)
     }
   }
 }
@@ -118,8 +110,12 @@ document.addEventListener("click", (event) => {
   if(event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
     return
   }
-  const link = event.target.closest("a")
-  if(!link || !link.dataset.page || link.getAttribute("href").startsWith("#")) {
+  const target = event.target
+  if(!(target instanceof Element)) {
+    return
+  }
+  const link = target.closest("a")
+  if(!(link instanceof HTMLAnchorElement) || !link.dataset.page || (link.getAttribute("href") ?? "").startsWith("#")) {
     return
   }
   event.preventDefault()
@@ -128,15 +124,17 @@ document.addEventListener("click", (event) => {
 
 // Hover / keyboard focus prefetching.
 document.addEventListener("pointerenter", (event) => {
-  const link = event.target instanceof Element ? event.target.closest("a[data-page]") : null
-  if(link) {
+  const target = event.target
+  const link = target instanceof Element ? target.closest("a[data-page]") : null
+  if(link instanceof HTMLElement && link.dataset.page) {
     prefetchPage(link.dataset.page)
   }
 }, { capture: true, passive: true })
 
 document.addEventListener("focusin", (event) => {
-  const link = event.target instanceof Element ? event.target.closest("a[data-page]") : null
-  if(link) {
+  const target = event.target
+  const link = target instanceof Element ? target.closest("a[data-page]") : null
+  if(link instanceof HTMLElement && link.dataset.page) {
     prefetchPage(link.dataset.page)
   }
 }, { capture: true })
@@ -147,15 +145,15 @@ window.addEventListener("popstate", () => {
 
 // --- playgrounds ------------------------------------------------------------
 
-export const loadPlaygrounds = (root = document) => {
-  for(const playground of root.querySelectorAll(".playground")) {
+export const loadPlaygrounds = (root: ParentNode = document) => {
+  for(const playground of root.querySelectorAll<HTMLElement>(".playground")) {
     if(playground.dataset.ready === "true") {
       continue
     }
     playground.dataset.ready = "true"
 
     const source = playground.querySelector(".pg-code")?.textContent ?? ""
-    const view = playground.querySelector(".pg-view")
+    const view = playground.querySelector<HTMLElement>(".pg-view")
     if(!view) {
       continue
     }
@@ -175,8 +173,9 @@ export const loadPlaygrounds = (root = document) => {
         source
 
     const blobUrl = URL.createObjectURL(new Blob([moduleSource], { type: "text/javascript" }))
-    import(blobUrl).catch((error) => {
-      view.textContent = `error: ${error.message}`
+    import(/* @vite-ignore */ blobUrl).catch((error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error)
+      view.textContent = `error: ${message}`
       console.error(error)
     })
   }

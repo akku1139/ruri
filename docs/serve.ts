@@ -13,7 +13,7 @@ const readPage = async (slug: string) => {
     title: /^#\s+(.*)$/m.exec(markdown)?.[1] ?? slug,
     headings: [...markdown.split("\n")]
         .map((line) => /^##\s+(.*)$/.exec(line)?.[1])
-        .filter((heading) => heading !== undefined),
+        .filter((heading): heading is string => heading !== undefined),
     contentHtml: (await renderMarkdown(markdown, { highlight })).map((element) => renderToString(element)).join(""),
   }
 }
@@ -24,10 +24,13 @@ const app = createApp()
 app.static(new URL("../../dist/", import.meta.url), { prefix: "/ruri" })
 
 // assets straight from the source tree (editable without rebuild)
-app.get("/client.js", async () => new Response(
-    await readFile(new URL("./src/client.js", import.meta.url), "utf8"),
-    { headers: { "content-type": "text/javascript; charset=utf-8" } },
-))
+app.get("/client.js", async () => {
+  const { stripTypeScriptTypes } = await import("node:module")
+  const source = await readFile(new URL("./src/client.ts", import.meta.url), "utf8")
+  return new Response(stripTypeScriptTypes(source, { mode: "strip" }), {
+    headers: { "content-type": "text/javascript; charset=utf-8" },
+  })
+})
 app.get("/styles.css", async () => new Response(
     await readFile(new URL("./src/styles.css", import.meta.url), "utf8"),
     { headers: { "content-type": "text/css; charset=utf-8" } },
