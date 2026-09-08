@@ -31,3 +31,20 @@ cd bench
 npm install         # first time only
 node run.mjs        # writes ../bench-results.md and prints it
 ```
+
+
+## Notes on Qwik and delayed hydration
+
+Qwik can delay hydration until interaction (resumability). That idea is attractive
+for mostly-static lists, but it is a different product shape than ruri's:
+
+- **Qwik** serializes the component tree / listeners and uses a virtual layer so
+  it can resume and track structural updates without re-running setup from scratch.
+- **ruri** is fine-grained signals + direct DOM (closer to Solid / VanJS). Rows
+  already bind at mount because `each()` must own keyed reconciliation for the
+  structural benches (swap / reverse / remove) that are a primary goal.
+
+A future `each(..., { lazy: true })` could defer *row* effects until first
+mutation of that key, at the cost of a slower first update. Full Qwik-style
+resumability would need serialized listener maps and a VDOM-like boundary —
+out of scope unless the project explicitly pivots toward resumable SSR.

@@ -366,10 +366,8 @@ function createRow<T>(
   const anchor = options.anchor!
   let node: Node | null = options.initialNode ?? null
   let firstRun = true
-  // Cached on the row object; updated whenever the root node is (re)built.
   let patchable = node === null ? true : !hasBoundSubtree(node)
 
-  // Allocate the row shell first so the effect can write patchable without TDZ.
   const row: Row<T> = {
     key: keyOf(controller, item),
     get node(): Node {
@@ -386,48 +384,42 @@ function createRow<T>(
     dispose: (): void => {},
   }
 
+  // Fine-grained: the effect re-runs only when signals read during render
+  // change. Index reads inside a nested effect() do not re-render the row
+  // template; index embedded in the template DOM does (tracked here).
   const disposeEffect = effect((): void => {
-    // Reading source.value here keeps the row subscribed: replacing an item
-    // object for this key re-runs only this effect.
     const currentItem = source.value
     const boundBefore = takeBoundGeneration()
-    const rendered = renderRow(controller.render, currentItem, indexRef, false)
-    // Any markBound during this render bumps the generation — O(1) vs DFS.
+    const rendered = renderRow(controller.render, currentItem, indexRef, false) as Node
     const renderedPatchable = takeBoundGeneration() === boundBefore
 
     if(firstRun) {
       firstRun = false
       if(node === null) {
-        node = rendered as Node
+        node = rendered
         patchable = renderedPatchable
         row.patchable = patchable
         return
       }
-      // Hydration: adopt existing node, drop the blueprint.
       runCleanupsFor(rendered as object)
-      patchable = node === null ? true : !hasBoundSubtree(node)
+      patchable = !hasBoundSubtree(node)
       row.patchable = patchable
       return
     }
 
-    if(rendered !== node && rendered !== null && typeof rendered === "object") {
+    if(rendered !== node) {
       const current = node as Node
-      // When old and new roots share the same shape and carry no event or
-      // signal bindings, copy attributes and text onto the existing node:
-      // fewer allocations and no DOM remove/insert churn.
-      if(!tryPatchRow(current, rendered as Node, patchable, renderedPatchable)) {
+      if(!tryPatchRow(current, rendered, patchable, renderedPatchable)) {
         const parent = anchor.parentNode
         if(parent) {
-          parent.insertBefore(rendered as Node, current)
+          parent.insertBefore(rendered, current)
           parent.removeChild(current)
         }
         runCleanupsFor(current)
-        node = rendered as Node
+        node = rendered
         patchable = renderedPatchable
         row.patchable = patchable
       } else {
-        // Patched in place: live node kept its identity; patchable unchanged
-        // (still unbound). Drop the temporary rendered tree.
         runCleanupsFor(rendered as object)
       }
     }

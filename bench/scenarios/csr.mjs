@@ -147,7 +147,7 @@ await runSuite("CSR: mount 1,000-row each() list", "ms", [
       }),
     ), container)
   }],*/
-], { warmup: 3, iterations: 25 })
+], { warmup: 5, iterations: 40 })
 
 // --- counter updates -------------------------------------------------------
 
