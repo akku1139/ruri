@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "node build.ts",
-    "dev": "node serve.ts"
+    "dev": "node serve.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "shiki": "^4.4.3"

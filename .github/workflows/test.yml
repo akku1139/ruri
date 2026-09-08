@@ -26,6 +26,8 @@ jobs:
       - run: pnpm install
       - run: pnpm run typecheck
       - run: pnpm run build && find ./dist -type f | sort
+      - run: pnpm run typecheck
+        working-directory: docs
 
   test:
     runs-on: ubuntu-latest
