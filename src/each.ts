@@ -321,19 +321,34 @@ const reconcile = <T>(anchor: Comment, controller: EachController<T>): void => {
   const nextItems = controller.items.peek()
   const oldRows = controller.rows
 
+  // Shallow equality check for items with the same key
+  const itemsEqual = (a: T, b: T): boolean => {
+    if(a === b) return true
+    if(a === null || b === null || typeof a !== "object" || typeof b !== "object") return false
+    const keysA = Object.keys(a)
+    const keysB = Object.keys(b)
+    if(keysA.length !== keysB.length) return false
+    for(const key of keysA) {
+      if((a as Record<string, unknown>)[key] !== (b as Record<string, unknown>)[key]) {
+        return false
+      }
+    }
+    return true
+  }
+
   // Shallow-copied arrays share item objects, so most updates only touch a
   // small region between an identical prefix and suffix. Trimming first keeps
   // everything below proportional to the changed region.
   const maxPrefix = Math.min(oldRows.length, nextItems.length)
   let prefix = 0
-  while(prefix < maxPrefix && oldRows[prefix]!.key === keyOf(controller, nextItems[prefix] as T)) {
+  while(prefix < maxPrefix && itemsEqual(oldRows[prefix]!.source.peek(), nextItems[prefix] as T)) {
     prefix++
   }
   const maxSuffix = Math.min(oldRows.length - prefix, nextItems.length - prefix)
   let suffix = 0
   while(
     suffix < maxSuffix &&
-    oldRows[oldRows.length - 1 - suffix]!.key === keyOf(controller, nextItems[nextItems.length - 1 - suffix] as T)
+    itemsEqual(oldRows[oldRows.length - 1 - suffix]!.source.peek(), nextItems[nextItems.length - 1 - suffix] as T)
   ) {
     suffix++
   }
@@ -437,16 +452,31 @@ const reconcile = <T>(anchor: Comment, controller: EachController<T>): void => {
     reuseFlagMap.set(middleNextRows[i]!, reusedFlags[i]!)
   }
 
+  // Shallow equality check for items with the same key
+  const itemsEqual = (a: T, b: T): boolean => {
+    if(a === b) return true
+    if(a === null || b === null || typeof a !== "object" || typeof b !== "object") return false
+    const keysA = Object.keys(a)
+    const keysB = Object.keys(b)
+    if(keysA.length !== keysB.length) return false
+    for(const key of keysA) {
+      if((a as Record<string, unknown>)[key] !== (b as Record<string, unknown>)[key]) {
+        return false
+      }
+    }
+    return true
+  }
+
   // Applying new items last lets replaced rows swap their node in place
   // without interacting with the move pass above.
   for(let index = 0; index < nextRows.length; index++) {
     const row = nextRows[index]!
     row.index.value = index
     const nextItem = nextItems[index] as T
-    // Only update source if this is a newly created row or the item reference actually changed
-    // For reused rows with the same key, skip updating to avoid unnecessary re-renders
+    // Only update source if this is a newly created row or the item actually changed
+    // For reused rows with the same key, skip updating if items are equal to avoid unnecessary re-renders
     const wasReused = reuseFlagMap.get(row)
-    if(!wasReused || row.source.peek() !== nextItem) {
+    if(!wasReused || !itemsEqual(row.source.peek(), nextItem)) {
       row.source.value = nextItem
     }
   }
