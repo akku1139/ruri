@@ -431,12 +431,24 @@ const reconcile = <T>(anchor: Comment, controller: EachController<T>): void => {
     ...oldRows.slice(oldRows.length - suffix),
   ]
 
+  // Build a map to quickly check if a row was reused and its reuse flag
+  const reuseFlagMap = new Map<Row<T>, boolean>()
+  for(let i = 0; i < middleNextRows.length; i++) {
+    reuseFlagMap.set(middleNextRows[i]!, reusedFlags[i]!)
+  }
+
   // Applying new items last lets replaced rows swap their node in place
   // without interacting with the move pass above.
   for(let index = 0; index < nextRows.length; index++) {
     const row = nextRows[index]!
     row.index.value = index
-    row.source.value = nextItems[index] as T
+    const nextItem = nextItems[index] as T
+    // Only update source if this is a newly created row or the item reference actually changed
+    // For reused rows with the same key, skip updating to avoid unnecessary re-renders
+    const wasReused = reuseFlagMap.get(row)
+    if(!wasReused || row.source.peek() !== nextItem) {
+      row.source.value = nextItem
+    }
   }
 
   controller.rows = nextRows

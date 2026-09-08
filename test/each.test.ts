@@ -171,11 +171,10 @@ test("row updates patch in place when safe and swap when bound", () => {
 
 test("updating one item re-renders only that row", () => {
   const renderCounts = new Map<number, number>()
-  const items = new Signal<readonly Todo[]>([
-    { id: 1, text: "one" },
-    { id: 2, text: "two" },
-    { id: 3, text: "three" },
-  ])
+  const item1 = { id: 1, text: "one" }
+  const item2 = { id: 2, text: "two" }
+  const item3 = { id: 3, text: "three" }
+  const items = new Signal<readonly Todo[]>([item1, item2, item3])
 
   const list = tags.ul({}, each(items, (todo: Todo) => {
     const count = renderCounts.get(todo.id) ?? 0
@@ -190,10 +189,11 @@ test("updating one item re-renders only that row", () => {
   assert.deepEqual(renderCounts.get(2), 1)
   assert.deepEqual(renderCounts.get(3), 1)
 
+  // Update only item 2 with a new object, keep same references for 1 and 3
   items.value = [
-    { id: 1, text: "one" },
+    item1,
     { id: 2, text: "TWO!" },
-    { id: 3, text: "three" },
+    item3,
   ]
 
   assert.deepEqual(renderCounts.get(1), 1, "item 1 should not re-render")
