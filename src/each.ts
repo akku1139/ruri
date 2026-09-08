@@ -322,7 +322,41 @@ function createRow<T>(
   }
 
   const source = new Signal<T>(item)
-  const indexSignal = new Signal<number>(index)
+  // Index signal is allocated lazily: most row renderers never read index, so
+  // mounting 1000 rows should not pay for 1000 unused Signal instances.
+  // reconcile still writes row.index.value = n; that only updates the box until
+  // something actually reads .value inside an effect.
+  let indexValue = index
+  let indexSignal: Signal<number> | null = null
+  const ensureIndex = (): Signal<number> => {
+    if(indexSignal === null) {
+      indexSignal = new Signal(indexValue)
+    }
+    return indexSignal
+  }
+  const indexRef = {
+    get value(): number {
+      return ensureIndex().value
+    },
+    set value(next: number) {
+      indexValue = next
+      if(indexSignal !== null) {
+        indexSignal.value = next
+      }
+    },
+    peek(): number {
+      return indexSignal === null ? indexValue : indexSignal.peek()
+    },
+    subscribe(fn: () => void): void {
+      ensureIndex().subscribe(fn)
+    },
+    unsubscribe(fn: () => void): boolean {
+      return indexSignal === null ? false : indexSignal.unsubscribe(fn)
+    },
+    dispose(): void {
+      indexSignal?.dispose()
+    },
+  } as Signal<number>
 
   const anchor = options.anchor!
   let node: Node | null = options.initialNode ?? null
@@ -339,7 +373,9 @@ function createRow<T>(
     set node(value: Node) {
       node = value
     },
-    index: indexSignal,
+    get index(): Signal<number> {
+      return indexRef
+    },
     source,
     patchable,
     dispose: (): void => {},
@@ -349,7 +385,7 @@ function createRow<T>(
     // Reading source.value here keeps the row subscribed: replacing an item
     // object for this key re-runs only this effect.
     const currentItem = source.value
-    const rendered = renderRow(controller.render, currentItem, indexSignal, false)
+    const rendered = renderRow(controller.render, currentItem, indexRef, false)
 
     if(firstRun) {
       firstRun = false
