@@ -3,7 +3,7 @@ import { Signal, effect } from "./signal.ts"
 import { ServerFragment } from "./server/element.ts"
 import type { Child } from "./types.ts"
 import { registerCleanup, runCleanupsFor } from "./utils/cleanup.ts"
-import { hasBoundSubtree } from "./tagFactory.ts"
+import { hasBoundSubtree, takeBoundGeneration } from "./tagFactory.ts"
 
 const EACH_ANCHOR_DATA = "ruri:each"
 
@@ -253,7 +253,12 @@ const patchInto = (oldNode: Node, newNode: Node): void => {
  * are structurally identical and free of listeners / reactive bindings.
  * Returns false when the caller must fall back to replacing the node.
  */
-const tryPatchRow = (currentNode: Node, rendered: Node, currentPatchable?: boolean): boolean => {
+const tryPatchRow = (
+  currentNode: Node,
+  rendered: Node,
+  currentPatchable?: boolean,
+  renderedPatchable?: boolean,
+): boolean => {
   try {
     if(currentPatchable === false || (currentPatchable === undefined && hasBoundSubtree(currentNode))) {
       return false
@@ -262,7 +267,7 @@ const tryPatchRow = (currentNode: Node, rendered: Node, currentPatchable?: boole
     if(tryPatchPlainText(currentNode, rendered)) {
       return true
     }
-    if(hasBoundSubtree(rendered)) {
+    if(renderedPatchable === false || (renderedPatchable === undefined && hasBoundSubtree(rendered))) {
       return false
     }
     if(!sameShape(currentNode, rendered)) {
@@ -385,19 +390,22 @@ function createRow<T>(
     // Reading source.value here keeps the row subscribed: replacing an item
     // object for this key re-runs only this effect.
     const currentItem = source.value
+    const boundBefore = takeBoundGeneration()
     const rendered = renderRow(controller.render, currentItem, indexRef, false)
+    // Any markBound during this render bumps the generation — O(1) vs DFS.
+    const renderedPatchable = takeBoundGeneration() === boundBefore
 
     if(firstRun) {
       firstRun = false
       if(node === null) {
         node = rendered as Node
-        patchable = !hasBoundSubtree(node)
+        patchable = renderedPatchable
         row.patchable = patchable
         return
       }
       // Hydration: adopt existing node, drop the blueprint.
       runCleanupsFor(rendered as object)
-      patchable = !hasBoundSubtree(node)
+      patchable = node === null ? true : !hasBoundSubtree(node)
       row.patchable = patchable
       return
     }
@@ -407,7 +415,7 @@ function createRow<T>(
       // When old and new roots share the same shape and carry no event or
       // signal bindings, copy attributes and text onto the existing node:
       // fewer allocations and no DOM remove/insert churn.
-      if(!tryPatchRow(current, rendered as Node, patchable)) {
+      if(!tryPatchRow(current, rendered as Node, patchable, renderedPatchable)) {
         const parent = anchor.parentNode
         if(parent) {
           parent.insertBefore(rendered as Node, current)
@@ -415,7 +423,7 @@ function createRow<T>(
         }
         runCleanupsFor(current)
         node = rendered as Node
-        patchable = !hasBoundSubtree(node)
+        patchable = renderedPatchable
         row.patchable = patchable
       } else {
         // Patched in place: live node kept its identity; patchable unchanged

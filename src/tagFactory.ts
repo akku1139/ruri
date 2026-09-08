@@ -144,12 +144,21 @@ export const applyAttribute = (element: AnyElement, name: string, value: unknown
 export const boundElements: WeakSet<object> = new WeakSet()
 
 /**
+ * Bumped every time markBound runs. each() snapshots this around a row render
+ * so patchable can be decided without DFS of the fresh tree.
+ */
+let boundGeneration = 0
+
+export const takeBoundGeneration = (): number => boundGeneration
+
+/**
  * Elements carrying event listeners or reactive attribute bindings. Row
  * updates must not patch through them in place - closures would go stale -
  * so such subtrees are swapped instead.
  */
 export const markBound = (element: AnyElement): void => {
   boundElements.add(element)
+  boundGeneration++
 }
 
 export const hasBoundSubtree = (root: Node): boolean => {

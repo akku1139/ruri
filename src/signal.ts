@@ -11,6 +11,9 @@ const pendingSubscribers = new Set<Subscriber>()
  */
 type SubSlot = null | Subscriber | Set<Subscriber>
 
+/** Same shape for effect dependency lists (0 / 1 / many signals). */
+type DepSlot = null | Signal<any> | Set<Signal<any>>
+
 export class Signal<T = unknown> {
   #data: T
   #sub: SubSlot = null
@@ -24,7 +27,7 @@ export class Signal<T = unknown> {
   get value(): T {
     const currentEffect = activeEffect
     if(currentEffect && untrackedDepth === 0) {
-      currentEffect.deps.add(this)
+      currentEffect.track(this)
       this.subscribe(currentEffect.notify)
     }
     return this.#data
@@ -123,31 +126,45 @@ class ReactiveEffect {
   subscriber: Subscriber
   /** Registered in signals instead of `subscriber` so every notification goes through {@link run}. */
   readonly notify: Subscriber
-  deps: Set<Signal<any>>
-  cleanups: Array<() => void>
-  disposed: boolean
+  /** 0 / 1 / many deps without allocating a Set for the common single-dep row effect. */
+  deps: DepSlot = null
+  cleanups: Array<() => void> | null = null
+  disposed = false
 
   constructor(fn: Subscriber) {
     this.subscriber = fn
     this.notify = (): void => {
       this.run()
     }
-    this.deps = new Set()
-    this.cleanups = []
-    this.disposed = false
+  }
+
+  track(signal: Signal<any>): void {
+    const slot = this.deps
+    if(slot === null) {
+      this.deps = signal
+      return
+    }
+    if(slot instanceof Signal) {
+      if(slot === signal) {
+        return
+      }
+      this.deps = new Set([slot, signal])
+      return
+    }
+    slot.add(signal)
   }
 
   run(): void {
     if(this.disposed) {
       return
     }
-    // Run user cleanups first; dependency unsubscription is deferred so that
-    // deps that are re-read in this run are not torn down and re-added.
-    for(const cleanup of this.cleanups.splice(0)) {
-      cleanup()
+    if(this.cleanups !== null && this.cleanups.length > 0) {
+      for(const cleanup of this.cleanups.splice(0)) {
+        cleanup()
+      }
     }
     const previousDeps = this.deps
-    this.deps = new Set()
+    this.deps = null
     const previous = activeEffect
     activeEffect = this
     try {
@@ -156,8 +173,31 @@ class ReactiveEffect {
       activeEffect = previous
     }
     // Drop only deps that were not re-tracked this run.
+    if(previousDeps === null) {
+      return
+    }
+    if(previousDeps instanceof Signal) {
+      const current = this.deps
+      if(current === null) {
+        previousDeps.unsubscribe(this.notify)
+      } else if(current instanceof Signal) {
+        if(current !== previousDeps) {
+          previousDeps.unsubscribe(this.notify)
+        }
+      } else if(!current.has(previousDeps)) {
+        previousDeps.unsubscribe(this.notify)
+      }
+      return
+    }
+    const current = this.deps
     for(const dep of previousDeps) {
-      if(!this.deps.has(dep)) {
+      if(current === null) {
+        dep.unsubscribe(this.notify)
+      } else if(current instanceof Signal) {
+        if(current !== dep) {
+          dep.unsubscribe(this.notify)
+        }
+      } else if(!current.has(dep)) {
         dep.unsubscribe(this.notify)
       }
     }
@@ -168,13 +208,23 @@ class ReactiveEffect {
       return
     }
     this.disposed = true
-    for(const cleanup of this.cleanups.splice(0)) {
-      cleanup()
+    if(this.cleanups !== null) {
+      for(const cleanup of this.cleanups.splice(0)) {
+        cleanup()
+      }
     }
-    for(const dep of this.deps) {
-      dep.unsubscribe(this.notify)
+    const slot = this.deps
+    if(slot === null) {
+      return
     }
-    this.deps.clear()
+    if(slot instanceof Signal) {
+      slot.unsubscribe(this.notify)
+    } else {
+      for(const dep of slot) {
+        dep.unsubscribe(this.notify)
+      }
+    }
+    this.deps = null
   }
 }
 
@@ -186,7 +236,7 @@ export const onCleanup = (fn: () => void): void => {
   if(!activeEffect) {
     throw new Error("onCleanup must be called inside an effect")
   }
-  activeEffect.cleanups.push(fn)
+  ;(activeEffect.cleanups ??= []).push(fn)
 }
 
 /** Runs `fn` without tracking any signal access. */
