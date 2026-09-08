@@ -2,13 +2,13 @@
 // of markdown (headings, fenced code, lists, tables, blockquotes, inline
 // styles/links) into ruri elements. Text content is passed as plain strings,
 // so everything is escaped by the framework - no HTML injection.
-import { ServerRaw, tags } from "../dist/index.js"
+import { ServerRaw, tags } from "../src/index.ts"
 
 const { blockquote, br, code, del, div, em, h1, h2, h3, h4, hr, li, ol, p, pre, span, strong, table, tbody, td, th, thead, tr, ul, a } = tags
 
 const INLINE_PATTERN = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|~~[^~]+~~|\[[^\]]+\]\([^)]+\))/g
 
-const renderInline = (text) => {
+const renderInline = (text: string) => {
   const children = []
   let lastIndex = 0
   for(const match of text.matchAll(INLINE_PATTERN)) {
@@ -42,10 +42,10 @@ const HEADINGS = { 1: h1, 2: h2, 3: h3, 4: h4 }
 
 let playgroundCounter = 0
 
-const splitTableRow = (line) =>
+const splitTableRow = (line: string) =>
     line.replace(/^\||\|$/g, "").split("|").map((cell) => cell.trim())
 
-async function* parseBlocks(lines, options) {
+async function* parseBlocks(lines: string[], options) {
   let index = 0
   while(index < lines.length) {
     const line = lines[index]
@@ -139,8 +139,8 @@ async function* parseBlocks(lines, options) {
 
     const listMatch = /^(\s*)([-*]|\d+\.)\s+/.exec(line)
     if(listMatch) {
-      const ordered = /\d+\./.test(listMatch[2])
-      const indent = listMatch[1].length
+      const ordered = /\d+\./.test(listMatch[2]!)
+      const indent = listMatch[1]!.length
       const items = []
       while(index < lines.length) {
         const itemMatch = /^(\s*)([-*]|\d+\.)\s+(.*)$/.exec(lines[index])
@@ -176,7 +176,7 @@ async function* parseBlocks(lines, options) {
  * Pass `options.highlight(code, lang)` (async, returns HTML or null) to get
  * Shiki-highlighted code blocks.
  */
-export const renderMarkdown = async (markdown, options = {}) => {
+export const renderMarkdown = async (markdown: string, options: Record<string, unknown> = {}) => {
   playgroundCounter = 0
   const blocks = []
   for await(const block of parseBlocks(markdown.split("\n"), options)) {
@@ -185,11 +185,11 @@ export const renderMarkdown = async (markdown, options = {}) => {
   return blocks
 }
 
-export const slugify = (heading) =>
+export const slugify = (heading: string) =>
     heading.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
 
 /** Extracts `## Heading` titles for the page navigation. */
-export const headingsOf = (markdown) =>
+export const headingsOf = (markdown: string) =>
     markdown.split("\n")
         .map((line) => /^(##)\s+(.*)$/.exec(line)?.[2])
         .filter((title) => title !== undefined)

@@ -3,9 +3,11 @@
 const CONTENT_ID = "content"
 const TOC_ID = "toc"
 
+/** @param { string } heading */
 const slugify = (heading) =>
     heading.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
 
+/** @param { string } url */
 const slugFromUrl = (url) => {
   const pathname = new URL(url, location.href).pathname
   const withoutFile = pathname.replace(/\/index\.html$/, "/").replace(/\.html$/, "")
@@ -17,7 +19,11 @@ const slugFromUrl = (url) => {
 
 const chunkCache = new Map()
 
-const fetchChunk = (slug) => {
+/**
+ * @param { string } slug
+ * @returns { Promise<import('../types.ts').PageDataJson> }
+ */
+const fetchChunk = async (slug) => {
   if(!slug) {
     return Promise.reject(new Error("no slug"))
   }
@@ -38,6 +44,7 @@ const fetchChunk = (slug) => {
   return promise
 }
 
+/** @param { string } slug */
 export const prefetchPage = (slug) => {
   if(!slug) {
     return
@@ -45,6 +52,7 @@ export const prefetchPage = (slug) => {
   void fetchChunk(slug).catch(() => {})
 }
 
+/** @param { string } heading */
 const tocLink = (heading) => {
   const link = document.createElement("a")
   link.className = "toc-item"
@@ -53,6 +61,7 @@ const tocLink = (heading) => {
   return link
 }
 
+/** @param { import('../types.ts').PageDataJson } page */
 const applyPage = (page) => {
   const content = document.getElementById(CONTENT_ID)
   if(!content) {
@@ -89,6 +98,7 @@ const navigate = async (slug, { push = true } = {}) => {
 
 // --- link wiring ------------------------------------------------------------
 
+/** @param { Document } root */
 const annotatePageLinks = (root) => {
   for(const link of root.querySelectorAll("a[href]")) {
     if(link.dataset.page) {

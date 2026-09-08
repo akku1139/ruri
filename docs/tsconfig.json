@@ -1,0 +1,11 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "isolatedDeclarations": false,
+    "allowJs": true,
+    "checkJs": true,
+  },
+  "include": ["**/*.ts", "**/*/*.js"],
+  "exclude": ["node_modules", "dist"],
+}

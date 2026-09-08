@@ -1,12 +1,12 @@
 // Live docs dev server: pages and chunks are re-rendered from markdown on
 // every request, so editing docs/src is immediately visible.
 import { readFile } from "node:fs/promises"
-import { createApp } from "../../dist/server/index.js"
-import { renderDocument, renderShell } from "./layout.mjs"
-import { highlight } from "./highlight.mjs"
-import { renderMarkdown } from "./markdown.mjs"
+import { createApp, renderToString } from "../src/server/index.ts"
+import { renderDocument, renderShell } from "./layout.ts"
+import { highlight } from "./highlight.ts"
+import { renderMarkdown } from "./markdown.ts"
 
-const readPage = async (slug) => {
+const readPage = async (slug: string) => {
   const markdown = await readFile(new URL(`./src/pages/${slug}.md`, import.meta.url), "utf8")
   return {
     slug,
@@ -35,6 +35,8 @@ app.get("/styles.css", async () => new Response(
 
 // page chunks + documents + shell
 app.get("/chunks/:slug", async (context) => {
+  if (!context.params.slug)
+    return context.json({ error: "wtf" }, 400)
   try {
     return context.json(await readPage(context.params.slug))
   } catch {
@@ -45,6 +47,8 @@ app.get("/chunks/:slug", async (context) => {
 app.get("/", async () => renderShell(await readPage("index")))
 
 app.get("/:slug", async (context) => {
+  if (!context.params.slug)
+    return context.json({ error: "wtf" }, 400)
   try {
     return context.html(renderDocument(await readPage(context.params.slug)))
   } catch {

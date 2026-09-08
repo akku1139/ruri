@@ -1,17 +1,18 @@
 // Static site generator: renders docs/src/pages/*.md through ruri into
 // docs/dist as an SPA shell + per-page documents + JSON chunks.
 import { copyFile, cp, mkdir, readdir, readFile, writeFile } from "node:fs/promises"
-import { renderToString } from "../dist/server/index.js"
-import { highlight } from "./highlight.mjs"
-import { renderDocument, renderShell } from "./layout.mjs"
-import { renderMarkdown } from "./markdown.mjs"
+import { renderToString } from "../src/server/index.ts"
+import { highlight } from "./highlight.ts"
+import { renderDocument, renderShell } from "./layout.ts"
+import { renderMarkdown } from "./markdown.ts"
+import type { PageDataJson } from "./types.ts"
 
 const PAGES_DIR = new URL("./src/pages/", import.meta.url)
 const OUT_DIR = new URL("./dist/", import.meta.url)
 
 const pageFiles = (await readdir(PAGES_DIR)).filter((file) => file.endsWith(".md")).sort()
 
-const pages = []
+const pages: PageDataJson[] = []
 for(const file of pageFiles) {
   const markdown = await readFile(new URL(file, PAGES_DIR), "utf8")
   const slug = file.replace(/\.md$/, "")

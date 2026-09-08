@@ -16,18 +16,15 @@ const LANGUAGE_ALIASES = {
   ruri: "javascript",
 }
 
-let highlighterPromise = null
-
-const getHighlighter = () => {
-  highlighterPromise ??= createHighlighter({
+const getHighlighter = async () => {
+  return await createHighlighter({
     themes: ["github-dark"],
     langs: ["javascript", "typescript", "json", "html", "shellscript"],
   })
-  return highlighterPromise
 }
 
 /** Returns highlighted HTML for the code, or null when the language is unknown. */
-export const highlight = async (code, lang) => {
+export const highlight = async (code: string, lang: keyof typeof LANGUAGE_ALIASES) => {
   const resolved = LANGUAGE_ALIASES[lang]
   if(!resolved) {
     return null
