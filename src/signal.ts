@@ -144,14 +144,15 @@ class ReactiveEffect {
       this.deps = signal
       return
     }
-    if(slot instanceof Signal) {
-      if(slot === signal) {
-        return
-      }
-      this.deps = new Set([slot, signal])
+    // Prefer instanceof Set: Signal is a generic class and is a poor instanceof target for TS.
+    if(slot instanceof Set) {
+      slot.add(signal)
       return
     }
-    slot.add(signal)
+    if(slot === signal) {
+      return
+    }
+    this.deps = new Set([slot, signal])
   }
 
   run(): void {
@@ -176,30 +177,18 @@ class ReactiveEffect {
     if(previousDeps === null) {
       return
     }
-    if(previousDeps instanceof Signal) {
+    if(previousDeps instanceof Set) {
       const current = this.deps
-      if(current === null) {
-        previousDeps.unsubscribe(this.notify)
-      } else if(current instanceof Signal) {
-        if(current !== previousDeps) {
-          previousDeps.unsubscribe(this.notify)
+      for(const dep of previousDeps) {
+        if(!depStillTracked(current, dep)) {
+          dep.unsubscribe(this.notify)
         }
-      } else if(!current.has(previousDeps)) {
-        previousDeps.unsubscribe(this.notify)
       }
       return
     }
-    const current = this.deps
-    for(const dep of previousDeps) {
-      if(current === null) {
-        dep.unsubscribe(this.notify)
-      } else if(current instanceof Signal) {
-        if(current !== dep) {
-          dep.unsubscribe(this.notify)
-        }
-      } else if(!current.has(dep)) {
-        dep.unsubscribe(this.notify)
-      }
+    // Single previous dep (a Signal).
+    if(!depStillTracked(this.deps, previousDeps)) {
+      previousDeps.unsubscribe(this.notify)
     }
   }
 
@@ -217,15 +206,26 @@ class ReactiveEffect {
     if(slot === null) {
       return
     }
-    if(slot instanceof Signal) {
-      slot.unsubscribe(this.notify)
-    } else {
+    if(slot instanceof Set) {
       for(const dep of slot) {
         dep.unsubscribe(this.notify)
       }
+    } else {
+      slot.unsubscribe(this.notify)
     }
     this.deps = null
   }
+}
+
+/** Whether `dep` is present in the current DepSlot. */
+const depStillTracked = (slot: DepSlot, dep: Signal<any>): boolean => {
+  if(slot === null) {
+    return false
+  }
+  if(slot instanceof Set) {
+    return slot.has(dep)
+  }
+  return slot === dep
 }
 
 /**
