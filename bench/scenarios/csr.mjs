@@ -1,6 +1,6 @@
 import { Window } from "happy-dom"
 
-const window = new Window({ url: "http://localhost/" })
+globalThis.window = new Window({ url: "http://localhost/" })
 for(const key of ["window", "document", "Node", "Element", "HTMLElement", "SVGElement", "Text", "Comment", "customElements", "getComputedStyle"]) {
   try {
     globalThis[key] = window[key]
@@ -28,29 +28,14 @@ const effect = signalsModule.effect
 const ruri = await import("../../dist/index.js")
 const tags = ruri.tags
 const Signal = ruri.Signal
-
-let solidRender = null
-let solidH = null
-let solidFor = null
-let solidCreateSignal = null
-try {
-  const solidWeb = await import("solid-js/web")
-  const solid = await import("solid-js")
-  const solidHyperscript = await import("solid-js/h")
-  solidRender = solidWeb.render
-  solidH = solidHyperscript.default
-  solidFor = solid.For
-  solidCreateSignal = solid.createSignal
-} catch {
-  // optional peer for local runs without fresh install
-}
-
-let van = null
-try {
-  van = (await import("vanjs-core")).default
-} catch {
-  // optional
-}
+const solidWeb = await import("solid-js/web")
+const solid = await import("solid-js");
+const solidHyperscript = await import("solid-js/h")
+const solidRender = solidWeb.render
+const solidH = solidHyperscript.default
+const solidFor = solid.For
+const solidCreateSignal = solid.createSignal
+const van = (await import("vanjs-core")).default
 const qwikModule = await import("@builder.io/qwik")
 const qwikH = qwikModule.h
 const qwikRender = qwikModule.render
@@ -113,18 +98,18 @@ await runSuite("CSR: mount 1,000-row list", "ms", [
 // More iterations: first runs after GC/JIT can skew medians badly (seen as
 // min≈14ms median≈43ms on CI for the same function).
 
-const eachMountPairs = [
+await runSuite("CSR: mount 1,000-row each() list", "ms", [
   ["ruri each()", () => {
     const { ul, li } = tags
     const items = new Signal(ROWS)
     const container = freshBodyChild()
-    container.append(ul({}, each(items, (row) => li({}, row.label), { key: (row) => row.id })))
+    container.append(ul({}, ruri.each(items, (row) => li({}, row.label), { key: (row) => row.id })))
   }],
   ["ruri each() + index", () => {
     const { ul, li } = tags
     const items = new Signal(ROWS)
     const container = freshBodyChild()
-    container.append(ul({}, each(items, (row, index) => li({}, `${index.value}:${row.label}`), { key: (row) => row.id })))
+    container.append(ul({}, ruri.each(items, (row, index) => li({}, `${index.value}:${row.label}`), { key: (row) => row.id })))
   }],
   ["preact+signals (rebuild)", () => {
     // Full rebuild on signal read — lower bound for "signal drives list", not
@@ -143,21 +128,16 @@ const eachMountPairs = [
     }
     effect(draw)
   }],
-]
-
-if(van) {
-  eachMountPairs.push(["vanjs", () => {
+  ["vanjs", () => {
     const { ul, li } = van.tags
     const items = van.state(ROWS)
     const container = freshBodyChild()
     // derive rebuilds the ul when items change; mount cost includes first derive.
     van.add(container, van.derive(() =>
       ul(items.val.map((row) => li(row.label)))))
-  }])
-}
-
-if(solidRender && solidH && solidFor && solidCreateSignal) {
-  eachMountPairs.push(["solid For", () => {
+  }],
+  /*["solid For", () => {
+    // fixme
     const container = freshBodyChild()
     const [items] = solidCreateSignal(ROWS)
     solidRender(() => solidH("ul", {},
@@ -166,10 +146,8 @@ if(solidRender && solidH && solidFor && solidCreateSignal) {
         children: (row) => solidH("li", {}, () => row.label),
       }),
     ), container)
-  }])
-}
-
-await runSuite("CSR: mount 1,000-row each() list", "ms", eachMountPairs, { warmup: 3, iterations: 25 })
+  }],*/
+], { warmup: 3, iterations: 25 })
 
 // --- counter updates -------------------------------------------------------
 

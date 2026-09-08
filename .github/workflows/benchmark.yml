@@ -36,6 +36,8 @@ jobs:
       - run: pnpm build
 
       - name: Run benchmarks
+        env:
+          NODE_OPTIONS: --conditions=browser
         run: node run.mjs
         working-directory: bench
 
