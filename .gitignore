@@ -63,3 +63,7 @@ htmlcov/
 *.tar.xz
 *.tar.zst
 ```
+
+# Benchmark scratch
+bench/.bundle-tmp/
+bench-results.md

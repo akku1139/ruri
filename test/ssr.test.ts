@@ -126,3 +126,20 @@ test("renderToStream emits the opening tag before the children", async () => {
   assert.equal(chunks[0], "<div>")
   assert.deepEqual(chunks.slice(-1), ["</div>"])
 })
+
+test("each serializes a keyed list without client effects", async () => {
+  const { each } = await import("../src/each.ts")
+  const items = new Signal([
+    { id: 1, text: "a" },
+    { id: 2, text: "b" },
+    { id: 3, text: "c" },
+  ])
+  const html = renderToString(
+    tags.ul({}, each(items, (item) => tags.li({}, item.text), { key: (item) => item.id })),
+  )
+  assert.match(html, /<ul>/)
+  assert.match(html, /<li>a<\/li>/)
+  assert.match(html, /<li>b<\/li>/)
+  assert.match(html, /<li>c<\/li>/)
+  assert.match(html, /<\/ul>/)
+})

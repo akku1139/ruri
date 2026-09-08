@@ -287,3 +287,23 @@ test("nested batch does not prematurely flush subscribers", () => {
   // Should only have initial + one final flush
   assert.equal(runs, 2)
 })
+
+test("single-subscriber notify does not allocate intermediate array path incorrectly", () => {
+  const signal = new Signal(0)
+  const seen: Array<number> = []
+  signal.subscribe(() => seen.push(signal.peek()))
+  signal.value = 1
+  signal.value = 2
+  assert.deepEqual(seen, [1, 2])
+})
+
+test("batch with a single pending subscriber flushes correctly", () => {
+  const signal = new Signal(0)
+  const seen: Array<number> = []
+  signal.subscribe(() => seen.push(signal.peek()))
+  batch(() => {
+    signal.value = 10
+    signal.value = 20
+  })
+  assert.deepEqual(seen, [20])
+})

@@ -7,6 +7,7 @@ const SCENARIOS = [
   ["CSR (happy-dom)", new URL("./scenarios/csr.mjs", import.meta.url)],
   ["Structural changes (happy-dom)", new URL("./scenarios/structural.mjs", import.meta.url)],
   ["Signals", new URL("./scenarios/signals.mjs", import.meta.url)],
+  ["Bundle size", new URL("./scenarios/bundle.mjs", import.meta.url)],
 ]
 
 const runScenario = ([name, url]) =>

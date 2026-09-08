@@ -14,6 +14,7 @@ _"📊 Benchmark Results"_ issue.
 > Qwik participates in the mount suite only: its signal/store APIs require
 > the optimizer-generated QRL chunks, which do not exist in a build-less run.
 | Signals | 10k writes through one subscriber; 10-step derived chain ×100 writes | `@preact/signals-core` |
+| Bundle size | minified + gzipped ESM entry size (kB) | preact, @preact/signals-core, vue runtime, react+react-dom |
 
 Timings come from shared CI runners - treat medians as rough guidance only.
 

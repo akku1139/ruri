@@ -206,17 +206,42 @@ const tryPatchRow = (currentNode: Node, rendered: Node): boolean => {
   }
 }
 
+/**
+ * Lightweight stand-in for Signal used only while serializing SSR rows.
+ * Render functions may read `.value` / `.peek`; writes and subscriptions are no-ops.
+ * Avoids allocating a real Signal (+ Set) per row on the server path.
+ */
+const ssrSignal = <T>(value: T): Signal<T> => {
+  const box = {
+    get value(): T {
+      return value
+    },
+    set value(_next: T) {
+      /* SSR rows are immutable */
+    },
+    peek(): T {
+      return value
+    },
+    subscribe(_fn: () => void): void {},
+    unsubscribe(_fn: () => void): boolean {
+      return false
+    },
+    dispose(): void {},
+  }
+  return box as unknown as Signal<T>
+}
+
 function createRow<T>(
   controller: EachController<T>,
   item: T,
   index: number,
   options: { serverMode?: boolean; anchor?: Comment; initialNode?: Node },
 ): Row<T> {
-  const source = new Signal<T>(item)
-  const indexSignal = new Signal<number>(index)
-
   if(options.serverMode) {
-    const staticNode = renderRow(controller.render, source.peek(), indexSignal, true) as Node
+    // SSR rows are never reconciled; skip real Signals and effects entirely.
+    const source = ssrSignal(item)
+    const indexSignal = ssrSignal(index)
+    const staticNode = renderRow(controller.render, item, indexSignal, true) as Node
     return {
       key: keyOf(controller, item),
       node: staticNode,
@@ -225,6 +250,9 @@ function createRow<T>(
       dispose: (): void => {},
     }
   }
+
+  const source = new Signal<T>(item)
+  const indexSignal = new Signal<number>(index)
 
   const anchor = options.anchor!
   let node: Node | null = options.initialNode ?? null

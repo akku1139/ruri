@@ -30,14 +30,26 @@ export class Signal<T = unknown> {
       return
     }
     this.#data = newValue
+    const subs = this.#subscribers
+    if(subs.size === 0) {
+      return
+    }
     if(batchDepth > 0) {
-      for(const subscriber of this.#subscribers) {
+      for(const subscriber of subs) {
         pendingSubscribers.add(subscriber)
       }
       return
     }
-    // Copy to array to avoid issues with set modification during iteration
-    const subscribers = [...this.#subscribers]
+    // Single-subscriber fast path: no intermediate array allocation.
+    // Common for each-row source signals and simple bindings.
+    if(subs.size === 1) {
+      for(const subscriber of subs) {
+        notify(subscriber)
+      }
+      return
+    }
+    // Copy to array so a subscriber that unsubscribes mid-loop is safe.
+    const subscribers = [...subs]
     for(const subscriber of subscribers) {
       notify(subscriber)
     }
@@ -155,11 +167,18 @@ export const batch = <T>(fn: () => T): T => {
   } finally {
     batchDepth--
     if(batchDepth === 0 && pendingSubscribers.size > 0) {
-      // Copy to array to avoid issues with set modification during iteration
-      const subscribers = [...pendingSubscribers]
-      pendingSubscribers.clear()
-      for(const subscriber of subscribers) {
-        notify(subscriber)
+      const pending = pendingSubscribers
+      if(pending.size === 1) {
+        const only = pending.values().next().value as Subscriber
+        pending.clear()
+        notify(only)
+      } else {
+        // Copy to array to avoid issues with set modification during iteration
+        const subscribers = [...pending]
+        pending.clear()
+        for(const subscriber of subscribers) {
+          notify(subscriber)
+        }
       }
     }
   }
