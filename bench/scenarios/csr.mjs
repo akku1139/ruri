@@ -28,6 +28,29 @@ const effect = signalsModule.effect
 const ruri = await import("../../dist/index.js")
 const tags = ruri.tags
 const Signal = ruri.Signal
+
+let solidRender = null
+let solidH = null
+let solidFor = null
+let solidCreateSignal = null
+try {
+  const solidWeb = await import("solid-js/web")
+  const solid = await import("solid-js")
+  const solidHyperscript = await import("solid-js/h")
+  solidRender = solidWeb.render
+  solidH = solidHyperscript.default
+  solidFor = solid.For
+  solidCreateSignal = solid.createSignal
+} catch {
+  // optional peer for local runs without fresh install
+}
+
+let van = null
+try {
+  van = (await import("vanjs-core")).default
+} catch {
+  // optional
+}
 const qwikModule = await import("@builder.io/qwik")
 const qwikH = qwikModule.h
 const qwikRender = qwikModule.render
@@ -84,13 +107,13 @@ await runSuite("CSR: mount 1,000-row list", "ms", [
   }],
 ], { warmup: 2, iterations: 10 })
 
-// --- mount via each() (keyed reactive list) ---------------------------------
+// --- mount via each() / reactive lists --------------------------------------
 // Static map() mount (suite above) skips per-row Signal/effect cost. Real list
-// UIs go through each(); keep a dedicated number so mount regressions show up.
+// UIs go through keyed reactive lists; measure those paths separately.
+// More iterations: first runs after GC/JIT can skew medians badly (seen as
+// min≈14ms median≈43ms on CI for the same function).
 
-const each = ruri.each
-
-await runSuite("CSR: mount 1,000-row each() list", "ms", [
+const eachMountPairs = [
   ["ruri each()", () => {
     const { ul, li } = tags
     const items = new Signal(ROWS)
@@ -103,11 +126,12 @@ await runSuite("CSR: mount 1,000-row each() list", "ms", [
     const container = freshBodyChild()
     container.append(ul({}, each(items, (row, index) => li({}, `${index.value}:${row.label}`), { key: (row) => row.id })))
   }],
-  ["preact (signals list)", () => {
-    // Approximate: rebuild full tree from a signal-backed array snapshot.
+  ["preact+signals (rebuild)", () => {
+    // Full rebuild on signal read — lower bound for "signal drives list", not
+    // keyed reconciliation (ruri each is doing more work on purpose).
     const list = signal(ROWS)
     const container = freshBodyChild()
-    const render = () => {
+    const draw = () => {
       container.replaceChildren()
       const ul = document.createElement("ul")
       for(const row of list.value) {
@@ -117,9 +141,35 @@ await runSuite("CSR: mount 1,000-row each() list", "ms", [
       }
       container.append(ul)
     }
-    effect(render)
+    effect(draw)
   }],
-], { warmup: 2, iterations: 10 })
+]
+
+if(van) {
+  eachMountPairs.push(["vanjs", () => {
+    const { ul, li } = van.tags
+    const items = van.state(ROWS)
+    const container = freshBodyChild()
+    // derive rebuilds the ul when items change; mount cost includes first derive.
+    van.add(container, van.derive(() =>
+      ul(items.val.map((row) => li(row.label)))))
+  }])
+}
+
+if(solidRender && solidH && solidFor && solidCreateSignal) {
+  eachMountPairs.push(["solid For", () => {
+    const container = freshBodyChild()
+    const [items] = solidCreateSignal(ROWS)
+    solidRender(() => solidH("ul", {},
+      solidH(solidFor, {
+        each: items,
+        children: (row) => solidH("li", {}, () => row.label),
+      }),
+    ), container)
+  }])
+}
+
+await runSuite("CSR: mount 1,000-row each() list", "ms", eachMountPairs, { warmup: 3, iterations: 25 })
 
 // --- counter updates -------------------------------------------------------
 
