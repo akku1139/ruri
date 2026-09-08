@@ -20,7 +20,31 @@ export interface EachController<T> {
   render: (item: T, index: Signal<number>) => Child
   options: EachOptions<T>
   rows: Array<Row<T>>
+  /**
+   * True when the render callback declares a second parameter (Solid-style
+   * `mapFn.length > 1`). Index machinery is omitted entirely otherwise.
+   */
+  readonly usesIndex: boolean
 }
+
+/**
+ * Shared stand-in for rows whose template never reads index. reconcile still
+ * assigns `row.index.value = n`; those writes are no-ops.
+ */
+const NOOP_INDEX = {
+  get value(): number {
+    return 0
+  },
+  set value(_next: number) {},
+  peek(): number {
+    return 0
+  },
+  subscribe(_fn: () => void): void {},
+  unsubscribe(_fn: () => void): boolean {
+    return false
+  },
+  dispose(): void {},
+} as Signal<number>
 
 interface Row<T> {
   readonly key: unknown
@@ -74,7 +98,10 @@ export const each = <T>(
   render: (item: T, index: Signal<number>) => Child,
   options: EachOptions<T> = {},
 ): Node => {
-  const controller: EachController<T> = { items, render, options, rows: [] }
+  // Function arity mirrors Solid mapArray / Svelte EACH_INDEX_REACTIVE:
+  // templates that only take `item` never allocate index infrastructure.
+  const usesIndex = render.length > 1
+  const controller: EachController<T> = { items, render, options, rows: [], usesIndex }
 
   if(typeof document === "undefined" || hydrationState.depth > 0) {
     const fragment = new EachFragment(controller)
@@ -327,41 +354,42 @@ function createRow<T>(
   }
 
   const source = new Signal<T>(item)
-  // Index signal is allocated lazily: most row renderers never read index, so
-  // mounting 1000 rows should not pay for 1000 unused Signal instances.
-  // reconcile still writes row.index.value = n; that only updates the box until
-  // something actually reads .value inside an effect.
-  let indexValue = index
-  let indexSignal: Signal<number> | null = null
-  const ensureIndex = (): Signal<number> => {
-    if(indexSignal === null) {
-      indexSignal = new Signal(indexValue)
-    }
-    return indexSignal
-  }
-  const indexRef = {
-    get value(): number {
-      return ensureIndex().value
-    },
-    set value(next: number) {
-      indexValue = next
-      if(indexSignal !== null) {
-        indexSignal.value = next
+  // Solid-style: only allocate index plumbing when render.length > 1.
+  const usesIndex = controller.usesIndex
+  let indexRef: Signal<number> = NOOP_INDEX
+  if(usesIndex) {
+    let indexValue = index
+    let indexSignal: Signal<number> | null = null
+    const ensureIndex = (): Signal<number> => {
+      if(indexSignal === null) {
+        indexSignal = new Signal(indexValue)
       }
-    },
-    peek(): number {
-      return indexSignal === null ? indexValue : indexSignal.peek()
-    },
-    subscribe(fn: () => void): void {
-      ensureIndex().subscribe(fn)
-    },
-    unsubscribe(fn: () => void): boolean {
-      return indexSignal === null ? false : indexSignal.unsubscribe(fn)
-    },
-    dispose(): void {
-      indexSignal?.dispose()
-    },
-  } as Signal<number>
+      return indexSignal
+    }
+    indexRef = {
+      get value(): number {
+        return ensureIndex().value
+      },
+      set value(next: number) {
+        indexValue = next
+        if(indexSignal !== null) {
+          indexSignal.value = next
+        }
+      },
+      peek(): number {
+        return indexSignal === null ? indexValue : indexSignal.peek()
+      },
+      subscribe(fn: () => void): void {
+        ensureIndex().subscribe(fn)
+      },
+      unsubscribe(fn: () => void): boolean {
+        return indexSignal === null ? false : indexSignal.unsubscribe(fn)
+      },
+      dispose(): void {
+        indexSignal?.dispose()
+      },
+    } as Signal<number>
+  }
 
   const anchor = options.anchor!
   let node: Node | null = options.initialNode ?? null
@@ -376,9 +404,7 @@ function createRow<T>(
     set node(value: Node) {
       node = value
     },
-    get index(): Signal<number> {
-      return indexRef
-    },
+    index: indexRef,
     source,
     patchable,
     dispose: (): void => {},
