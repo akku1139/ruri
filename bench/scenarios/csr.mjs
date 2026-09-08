@@ -84,6 +84,43 @@ await runSuite("CSR: mount 1,000-row list", "ms", [
   }],
 ], { warmup: 2, iterations: 10 })
 
+// --- mount via each() (keyed reactive list) ---------------------------------
+// Static map() mount (suite above) skips per-row Signal/effect cost. Real list
+// UIs go through each(); keep a dedicated number so mount regressions show up.
+
+const each = ruri.each
+
+await runSuite("CSR: mount 1,000-row each() list", "ms", [
+  ["ruri each()", () => {
+    const { ul, li } = tags
+    const items = new Signal(ROWS)
+    const container = freshBodyChild()
+    container.append(ul({}, each(items, (row) => li({}, row.label), { key: (row) => row.id })))
+  }],
+  ["ruri each() + index", () => {
+    const { ul, li } = tags
+    const items = new Signal(ROWS)
+    const container = freshBodyChild()
+    container.append(ul({}, each(items, (row, index) => li({}, `${index.value}:${row.label}`), { key: (row) => row.id })))
+  }],
+  ["preact (signals list)", () => {
+    // Approximate: rebuild full tree from a signal-backed array snapshot.
+    const list = signal(ROWS)
+    const container = freshBodyChild()
+    const render = () => {
+      container.replaceChildren()
+      const ul = document.createElement("ul")
+      for(const row of list.value) {
+        const li = document.createElement("li")
+        li.textContent = row.label
+        ul.append(li)
+      }
+      container.append(ul)
+    }
+    effect(render)
+  }],
+], { warmup: 2, iterations: 10 })
+
 // --- counter updates -------------------------------------------------------
 
 await runSuite(`CSR: ${UPDATE_COUNT} counter updates`, "ms", [
