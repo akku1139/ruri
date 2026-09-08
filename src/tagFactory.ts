@@ -266,7 +266,17 @@ const buildClientElement = (
     ? document.createElement(tagName)
     : document.createElementNS(namespace, tagName) as AnyElement
 
-  applyProps(element, props)
+  // EMPTY_PROPS and other empty objects skip the for-in entirely.
+  if(props !== EMPTY_PROPS) {
+    let hasKey = false
+    for(const _ in props) {
+      hasKey = true
+      break
+    }
+    if(hasKey) {
+      applyProps(element, props)
+    }
+  }
   appendChildren(element, children, childStart)
   return element
 }
@@ -344,7 +354,8 @@ const buildServerElement = (
   const element = new ServerElement(tagName, namespace)
 
   const hydrating = hydrationState.depth > 0
-  for(const name in props) {
+  // Skip the props loop for the shared EMPTY_PROPS sentinel.
+  if(props !== EMPTY_PROPS) for(const name in props) {
     const value = props[name]
     if(value === undefined) {
       continue
@@ -386,13 +397,19 @@ type TagArguments<T extends keyof AllElementTagNameMap> =
   [props: ElementAttributes<T>, ...children: Children]
   | Children
 
-const looksLikeProps = (firstArgument: unknown): boolean =>
-  typeof firstArgument === "object"
-  && firstArgument !== null
-  && !Array.isArray(firstArgument)
-  && !(firstArgument instanceof Signal)
-  && !("nodeType" in firstArgument)
-  && !("serialize" in firstArgument)
+const looksLikeProps = (firstArgument: unknown): boolean => {
+  // Ordered by failure frequency on the hot path (strings, null, arrays first).
+  if(firstArgument === null || typeof firstArgument !== "object") {
+    return false
+  }
+  if(Array.isArray(firstArgument) || "nodeType" in firstArgument) {
+    return false
+  }
+  if(firstArgument instanceof Signal || "serialize" in firstArgument) {
+    return false
+  }
+  return true
+}
 
 const EMPTY_PROPS: Record<string, unknown> = {}
 
