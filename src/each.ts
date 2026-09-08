@@ -129,6 +129,7 @@ export const subscribeReconciliation = <T>(anchor: Comment, controller: EachCont
   })
 }
 
+/** Checks if two nodes have the same shape for patching optimization. */
 const sameShape = (oldNode: Node, newNode: Node): boolean => {
   if(oldNode.nodeType !== newNode.nodeType || (oldNode as Element).tagName?.toLowerCase() !== (newNode as Element).tagName?.toLowerCase()) {
     return false
