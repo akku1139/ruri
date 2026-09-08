@@ -36,7 +36,8 @@ export class Signal<T = unknown> {
       }
       return
     }
-    for(const subscriber of [...this.#subscribers]) {
+    // Notify directly without spreading to avoid array allocation
+    for(const subscriber of this.#subscribers) {
       notify(subscriber)
     }
   }
@@ -153,11 +154,11 @@ export const batch = <T>(fn: () => T): T => {
   } finally {
     batchDepth--
     if(batchDepth === 0 && pendingSubscribers.size > 0) {
-      const subscribers = [...pendingSubscribers]
-      pendingSubscribers.clear()
-      for(const subscriber of subscribers) {
+      // Iterate without spreading to avoid array allocation
+      for(const subscriber of pendingSubscribers) {
         notify(subscriber)
       }
+      pendingSubscribers.clear()
     }
   }
 }

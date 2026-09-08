@@ -50,6 +50,7 @@ const namespaceFor = (tagName: string): string => {
   return namespace
 }
 
+/** Converts a child value to string for text content. */
 const stringifyChild = (value: unknown): string => {
   if(typeof value === "string") {
     return value
@@ -65,6 +66,7 @@ const stringifyChild = (value: unknown): string => {
   }
 }
 
+/** Converts a class value to string for the class attribute. */
 const classValueToString = (value: unknown): string => {
   if(value === null || value === undefined || value === false || value === "") {
     return ""
@@ -84,9 +86,11 @@ const classValueToString = (value: unknown): string => {
   return stringifyChild(value)
 }
 
+/** Checks if a child should be skipped during rendering. */
 const isSkippedChild = (child: Child): child is null | undefined | boolean =>
   child === null || child === undefined || typeof child === "boolean"
 
+/** Checks if a value follows the SignalLike interface contract. */
 const isSignalLike = (value: unknown): value is SignalLike<unknown> =>
   value !== null && typeof value === "object"
   && "peek" in value && "subscribe" in value && "value" in value
