@@ -40,12 +40,13 @@ export class Signal<T = unknown> {
       }
       return
     }
-    // Single-subscriber fast path: no intermediate array allocation.
-    // Common for each-row source signals and simple bindings.
+    // Single-subscriber fast path: grab the one fn first, then notify.
+    // Must NOT iterate the Set live — effect cleanup unsubscribes and the
+    // subsequent re-subscribe would re-insert into the same Set mid-iteration
+    // and loop forever (structural each() updates hit this path hard).
     if(subs.size === 1) {
-      for(const subscriber of subs) {
-        notify(subscriber)
-      }
+      const only = subs.values().next().value as Subscriber
+      notify(only)
       return
     }
     // Copy to array so a subscriber that unsubscribes mid-loop is safe.

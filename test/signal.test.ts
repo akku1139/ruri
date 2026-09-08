@@ -297,6 +297,25 @@ test("single-subscriber notify does not allocate intermediate array path incorre
   assert.deepEqual(seen, [1, 2])
 })
 
+test("single-subscriber notify survives effect-style unsubscribe+resubscribe", () => {
+  // Mirrors ReactiveEffect.run: cleanup unsubscribes, body re-subscribes.
+  // A live Set iteration here would infinite-loop.
+  const signal = new Signal(0)
+  let runs = 0
+  const notifyFn = (): void => {
+    runs++
+    if(runs > 50) {
+      throw new Error("infinite notify loop")
+    }
+    signal.unsubscribe(notifyFn)
+    signal.subscribe(notifyFn)
+  }
+  signal.subscribe(notifyFn)
+  signal.value = 1
+  signal.value = 2
+  assert.equal(runs, 2)
+})
+
 test("batch with a single pending subscriber flushes correctly", () => {
   const signal = new Signal(0)
   const seen: Array<number> = []
