@@ -129,7 +129,7 @@ test("renderToStream emits the opening tag before the children", async () => {
 
 test("each serializes a keyed list without client effects", async () => {
   const { each } = await import("../src/each.ts")
-  const items = new Signal([
+  const items = new Signal<readonly { id: number; text: string }[]>([
     { id: 1, text: "a" },
     { id: 2, text: "b" },
     { id: 3, text: "c" },
