@@ -100,17 +100,27 @@ export class ServerElement {
   }
 
   serialize(): string {
-    let html = `<${this.tagName}${this.serializeAttributes()}>`
+    const open = `<${this.tagName}${this.serializeAttributes()}>`
     if(VOID_ELEMENTS.has(this.tagName)) {
-      return html
+      return open
     }
+    const children = this.childNodes
+    if(children.length === 0) {
+      return `${open}</${this.tagName}>`
+    }
+    // Array join beats repeated string += for wide trees (1000-row tables).
+    const parts: Array<string> = [open]
     const isRawText = RAW_TEXT_ELEMENTS.has(this.tagName)
-    for(const child of this.childNodes) {
-      html += typeof child === "string"
-          ? (isRawText ? child : escapeHTML(child))
-          : child.serialize()
+    for(let index = 0; index < children.length; index++) {
+      const child = children[index]!
+      parts.push(
+        typeof child === "string"
+            ? (isRawText ? child : escapeHTML(child))
+            : child.serialize(),
+      )
     }
-    return `${html}</${this.tagName}>`
+    parts.push(`</${this.tagName}>`)
+    return parts.join("")
   }
 }
 
@@ -159,11 +169,20 @@ export class ServerFragment {
   }
 
   serialize(): string {
-    let html = ""
-    for(const child of this.childNodes) {
-      html += typeof child === "string" ? escapeHTML(child) : child.serialize()
+    const children = this.childNodes
+    if(children.length === 0) {
+      return ""
     }
-    return html
+    if(children.length === 1) {
+      const child = children[0]!
+      return typeof child === "string" ? escapeHTML(child) : child.serialize()
+    }
+    const parts: Array<string> = []
+    for(let index = 0; index < children.length; index++) {
+      const child = children[index]!
+      parts.push(typeof child === "string" ? escapeHTML(child) : child.serialize())
+    }
+    return parts.join("")
   }
 
   *serializeChunks(): Generator<string> {
