@@ -214,8 +214,8 @@ const appendChild = (parent: Node & ParentNode, child: Child): void => {
  * Arrays are flattened, `null` / `undefined` / booleans are skipped and
  * signals become self-updating text nodes.
  */
-export const appendChildren = (parent: Node & ParentNode, children: Children): void => {
-  for(let index = 0; index < children.length; index++) {
+export const appendChildren = (parent: Node & ParentNode, children: Children, start = 0): void => {
+  for(let index = start; index < children.length; index++) {
     const child = children[index]
     // Fast path: plain strings are by far the most common child kind.
     if(typeof child === "string") {
@@ -260,13 +260,14 @@ const buildClientElement = (
   namespace: string,
   props: Record<string, unknown>,
   children: Children,
+  childStart = 0,
 ): AnyElement => {
   const element: AnyElement = namespace === HTML_NAMESPACE
     ? document.createElement(tagName)
     : document.createElementNS(namespace, tagName) as AnyElement
 
   applyProps(element, props)
-  appendChildren(element, children)
+  appendChildren(element, children, childStart)
   return element
 }
 
@@ -321,8 +322,8 @@ const appendServerChild = (parent: ServerElement | ServerFragment, child: Child)
   parent.append(stringifyChild(child))
 }
 
-export const appendServerChildren = (parent: ServerElement | ServerFragment, children: Children): void => {
-  for(let index = 0; index < children.length; index++) {
+export const appendServerChildren = (parent: ServerElement | ServerFragment, children: Children, start = 0): void => {
+  for(let index = start; index < children.length; index++) {
     const child = children[index]
     // Fast path: plain strings are by far the most common child kind.
     if(typeof child === "string") {
@@ -338,6 +339,7 @@ const buildServerElement = (
   namespace: string,
   props: Record<string, unknown>,
   children: Children,
+  childStart = 0,
 ): ServerElement => {
   const element = new ServerElement(tagName, namespace)
 
@@ -371,7 +373,7 @@ const buildServerElement = (
     applyServerAttribute(element, name, value)
   }
 
-  appendServerChildren(element, children)
+  appendServerChildren(element, children, childStart)
   return element
 }
 
@@ -401,15 +403,18 @@ export const tagFactory = <T extends keyof AllElementTagNameMap>(tagName: T): Ta
     const firstArgument = args[0]
     const hasProps = looksLikeProps(firstArgument)
     const props = (hasProps ? firstArgument : EMPTY_PROPS) as Record<string, unknown>
-    const children = (hasProps ? args.slice(1) : args) as Children
+    // Avoid args.slice allocation on the hot create path: pass the args array
+    // with a start index into append helpers via a lightweight view.
+    const childArgs = args as Children
+    const childStart = hasProps ? 1 : 0
 
     const namespace = props.xmlns === undefined
         ? namespaceFor(tagNameString)
         : resolveNamespace(tagNameString, props.xmlns)
 
     if(typeof document === "undefined" || hydrationState.depth > 0) {
-      return buildServerElement(tagNameString, namespace, props, children) as unknown as AllElementTagNameMap[T]
+      return buildServerElement(tagNameString, namespace, props, childArgs, childStart) as unknown as AllElementTagNameMap[T]
     }
-    return buildClientElement(tagNameString, namespace, props, children) as unknown as AllElementTagNameMap[T]
+    return buildClientElement(tagNameString, namespace, props, childArgs, childStart) as unknown as AllElementTagNameMap[T]
   }
 }
