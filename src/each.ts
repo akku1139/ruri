@@ -28,6 +28,11 @@ interface Row<T> {
   readonly index: Signal<number>
   /** The latest item for this key; replacing it re-renders only this row. */
   readonly source: Signal<T>
+  /**
+   * True when the current row root has no event/signal bindings in its
+   * subtree. Cached at create/replace time so tryPatchRow avoids DFS.
+   */
+  patchable: boolean
   dispose(): void
 }
 
@@ -191,9 +196,13 @@ const patchInto = (oldNode: Node, newNode: Node): void => {
  * are structurally identical and free of listeners / reactive bindings.
  * Returns false when the caller must fall back to replacing the node.
  */
-const tryPatchRow = (currentNode: Node, rendered: Node): boolean => {
+const tryPatchRow = (currentNode: Node, rendered: Node, currentPatchable?: boolean): boolean => {
   try {
-    if(hasBoundSubtree(currentNode) || hasBoundSubtree(rendered)) {
+    // Prefer the cached flag for the live node; still scan the fresh tree once.
+    if(currentPatchable === false || (currentPatchable === undefined && hasBoundSubtree(currentNode))) {
+      return false
+    }
+    if(hasBoundSubtree(rendered)) {
       return false
     }
     if(!sameShape(currentNode, rendered)) {
@@ -247,6 +256,7 @@ function createRow<T>(
       node: staticNode,
       index: indexSignal,
       source,
+      patchable: true,
       dispose: (): void => {},
     }
   }
@@ -257,6 +267,23 @@ function createRow<T>(
   const anchor = options.anchor!
   let node: Node | null = options.initialNode ?? null
   let firstRun = true
+  // Cached on the row object; updated whenever the root node is (re)built.
+  let patchable = node === null ? true : !hasBoundSubtree(node)
+
+  // Allocate the row shell first so the effect can write patchable without TDZ.
+  const row: Row<T> = {
+    key: keyOf(controller, item),
+    get node(): Node {
+      return node!
+    },
+    set node(value: Node) {
+      node = value
+    },
+    index: indexSignal,
+    source,
+    patchable,
+    dispose: (): void => {},
+  }
 
   const disposeEffect = effect((): void => {
     // Reading source.value here keeps the row subscribed: replacing an item
@@ -268,9 +295,14 @@ function createRow<T>(
       firstRun = false
       if(node === null) {
         node = rendered as Node
+        patchable = !hasBoundSubtree(node)
+        row.patchable = patchable
         return
       }
+      // Hydration: adopt existing node, drop the blueprint.
       runCleanupsFor(rendered as object)
+      patchable = !hasBoundSubtree(node)
+      row.patchable = patchable
       return
     }
 
@@ -279,34 +311,29 @@ function createRow<T>(
       // When old and new roots share the same shape and carry no event or
       // signal bindings, copy attributes and text onto the existing node:
       // fewer allocations and no DOM remove/insert churn.
-      if(!tryPatchRow(current, rendered as Node)) {
+      if(!tryPatchRow(current, rendered as Node, patchable)) {
         const parent = anchor.parentNode
         if(parent) {
           parent.insertBefore(rendered as Node, current)
           parent.removeChild(current)
         }
         runCleanupsFor(current)
+        node = rendered as Node
+        patchable = !hasBoundSubtree(node)
+        row.patchable = patchable
+      } else {
+        // Patched in place: live node kept its identity; patchable unchanged
+        // (still unbound). Drop the temporary rendered tree.
+        runCleanupsFor(rendered as object)
       }
-      node = rendered as Node
     }
   })
 
-  const row: Row<T> = {
-    key: keyOf(controller, item),
-    get node(): Node {
-      return node!
-    },
-    set node(value: Node) {
-      node = value
-    },
-    index: indexSignal,
-    source,
-    dispose: (): void => {
-      disposeEffect()
-      if(node !== null) {
-        runCleanupsFor(node)
-      }
-    },
+  row.dispose = (): void => {
+    disposeEffect()
+    if(node !== null) {
+      runCleanupsFor(node)
+    }
   }
   return row
 }
@@ -366,18 +393,67 @@ const reconcile = <T>(anchor: Comment, controller: EachController<T>): void => {
     suffix++
   }
 
+  const middleOldLen = oldRows.length - prefix - suffix
+  const middleNewLen = nextItems.length - prefix - suffix
+
+  // --- Fast paths for pure tail mutations (no middle shuffle) ---------------
+  // Append-only: shared full prefix, nothing to remove.
+  if(suffix === 0 && middleOldLen === 0 && middleNewLen > 0) {
+    const nextRows: Array<Row<T>> = oldRows.slice()
+    // Insert after the last existing row (or after the anchor when empty).
+    const boundary: Node | null =
+        oldRows.length > 0
+            ? oldRows[oldRows.length - 1]!.node.nextSibling
+            : anchor.nextSibling
+    const fragment = parent ? document.createDocumentFragment() : null
+    for(let index = prefix; index < nextItems.length; index++) {
+      const row = createRow(controller, nextItems[index] as T, index, { anchor })
+      nextRows.push(row)
+      fragment?.append(row.node)
+    }
+    if(parent && fragment) {
+      parent.insertBefore(fragment, boundary)
+    }
+    for(let index = prefix; index < nextRows.length; index++) {
+      nextRows[index]!.index.value = index
+      nextRows[index]!.source.value = nextItems[index] as T
+    }
+    controller.rows = nextRows
+    return
+  }
+
+  // Tail-remove only: shared prefix, nothing added, removed rows are a suffix.
+  if(suffix === 0 && middleNewLen === 0 && middleOldLen > 0 && prefix + middleOldLen === oldRows.length) {
+    for(let index = prefix; index < oldRows.length; index++) {
+      const row = oldRows[index]!
+      row.dispose()
+      row.node.parentNode?.removeChild(row.node)
+    }
+    const nextRows = oldRows.slice(0, prefix)
+    for(let index = 0; index < nextRows.length; index++) {
+      nextRows[index]!.index.value = index
+      nextRows[index]!.source.value = nextItems[index] as T
+    }
+    controller.rows = nextRows
+    return
+  }
+
   const middleOld = oldRows.slice(prefix, oldRows.length - suffix)
 
-  // Match middle rows by key.
-  const rowByKey = new Map(middleOld.map((row) => [row.key, row]))
+  // Match middle rows by key (single pass builds both maps).
+  const rowByKey = new Map<unknown, Row<T>>()
+  const middleOldIndexByKey = new Map<unknown, number>()
+  for(let index = 0; index < middleOld.length; index++) {
+    const row = middleOld[index]!
+    rowByKey.set(row.key, row)
+    middleOldIndexByKey.set(row.key, index)
+  }
   const remaining = new Set(middleOld)
 
   const middleNextRows: Array<Row<T>> = []
   const reusedFlags: Array<boolean> = []
   /** Old-order index (within the middle region) of every reused row. */
   const reusedOldIndices: Array<number> = []
-
-  const middleOldIndexByKey = new Map(middleOld.map((row, index) => [row.key, index]))
 
   for(let index = prefix; index < nextItems.length - suffix; index++) {
     const item = nextItems[index] as T
@@ -388,6 +464,8 @@ const reconcile = <T>(anchor: Comment, controller: EachController<T>): void => {
       middleNextRows.push(existing)
       reusedFlags.push(true)
       reusedOldIndices.push(middleOldIndexByKey.get(key) ?? -1)
+      // Prevent duplicate-key collisions from reusing the same row twice.
+      rowByKey.delete(key)
       continue
     }
     middleNextRows.push(createRow(controller, item, index, { anchor }))
@@ -410,8 +488,10 @@ const reconcile = <T>(anchor: Comment, controller: EachController<T>): void => {
     row.node.parentNode?.removeChild(row.node)
   }
 
-  // Minimal-move reorder within the middle: rows on the longest increasing
-  // subsequence stay anchored, consecutive movers batch into a fragment.
+  // Minimal-move reorder within the middle.
+  // Small middles: skip LIS and move every non-identity position (cheaper than
+  // allocating LIS structures for 1–2 movers like swap).
+  // Large middles: LIS keeps the longest stable sequence in place.
   if(parent && middleNextRows.length > 0) {
     const reusedPositions: Array<number> = []
     const oldIndexSequence: Array<number> = []
@@ -422,8 +502,26 @@ const reconcile = <T>(anchor: Comment, controller: EachController<T>): void => {
       reusedPositions.push(position)
       oldIndexSequence.push(reusedOldIndices[position] ?? -1)
     }
-    const keep = longestIncreasingSubsequence(oldIndexSequence)
-    const keptPositions = new Set([...keep].map((seqIndex) => reusedPositions[seqIndex]!))
+
+    const keptPositions = new Set<number>()
+    const SMALL_MIDDLE = 8
+    if(reusedPositions.length <= SMALL_MIDDLE) {
+      // Keep a position only when it is already in increasing order relative
+      // to the previous kept one (greedy, O(n), good enough for tiny middles).
+      let last = -1
+      for(let seqIndex = 0; seqIndex < reusedPositions.length; seqIndex++) {
+        const oldIndex = oldIndexSequence[seqIndex]!
+        if(oldIndex > last) {
+          keptPositions.add(reusedPositions[seqIndex]!)
+          last = oldIndex
+        }
+      }
+    } else {
+      const keep = longestIncreasingSubsequence(oldIndexSequence)
+      for(const seqIndex of keep) {
+        keptPositions.add(reusedPositions[seqIndex]!)
+      }
+    }
 
     let pending: Array<Node> = []
     const flushPending = (): void => {

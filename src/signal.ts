@@ -5,14 +5,19 @@ let untrackedDepth = 0
 let batchDepth = 0
 const pendingSubscribers = new Set<Subscriber>()
 
+/**
+ * Subscriber storage for the common 0/1-subscriber case avoids allocating a
+ * Set. Two or more subscribers upgrade to a Set.
+ */
+type SubSlot = null | Subscriber | Set<Subscriber>
+
 export class Signal<T = unknown> {
   #data: T
-  #subscribers: Set<Subscriber>
+  #sub: SubSlot = null
   #equals: Equals<T>
 
   constructor(init: T, equals: Equals<T> = (b, a) => Object.is(b, a)) {
     this.#data = init
-    this.#subscribers = new Set()
     this.#equals = equals
   }
 
@@ -20,7 +25,7 @@ export class Signal<T = unknown> {
     const currentEffect = activeEffect
     if(currentEffect && untrackedDepth === 0) {
       currentEffect.deps.add(this)
-      this.#subscribers.add(currentEffect.notify)
+      this.subscribe(currentEffect.notify)
     }
     return this.#data
   }
@@ -30,27 +35,27 @@ export class Signal<T = unknown> {
       return
     }
     this.#data = newValue
-    const subs = this.#subscribers
-    if(subs.size === 0) {
+    const slot = this.#sub
+    if(slot === null) {
       return
     }
     if(batchDepth > 0) {
-      for(const subscriber of subs) {
-        pendingSubscribers.add(subscriber)
+      if(typeof slot === "function") {
+        pendingSubscribers.add(slot)
+      } else {
+        for(const subscriber of slot) {
+          pendingSubscribers.add(subscriber)
+        }
       }
       return
     }
-    // Single-subscriber fast path: grab the one fn first, then notify.
-    // Must NOT iterate the Set live — effect cleanup unsubscribes and the
-    // subsequent re-subscribe would re-insert into the same Set mid-iteration
-    // and loop forever (structural each() updates hit this path hard).
-    if(subs.size === 1) {
-      const only = subs.values().next().value as Subscriber
-      notify(only)
+    if(typeof slot === "function") {
+      // Snapshot before notify: effect cleanup may unsubscribe+resubscribe.
+      notify(slot)
       return
     }
-    // Copy to array so a subscriber that unsubscribes mid-loop is safe.
-    const subscribers = [...subs]
+    // Copy so unsubscribe mid-loop is safe.
+    const subscribers = [...slot]
     for(const subscriber of subscribers) {
       notify(subscriber)
     }
@@ -62,15 +67,44 @@ export class Signal<T = unknown> {
   }
 
   subscribe(fn: Subscriber): void {
-    this.#subscribers.add(fn)
+    const slot = this.#sub
+    if(slot === null) {
+      this.#sub = fn
+      return
+    }
+    if(typeof slot === "function") {
+      if(slot === fn) {
+        return
+      }
+      this.#sub = new Set([slot, fn])
+      return
+    }
+    slot.add(fn)
   }
 
   unsubscribe(fn: Subscriber): boolean {
-    return this.#subscribers.delete(fn)
+    const slot = this.#sub
+    if(slot === null) {
+      return false
+    }
+    if(typeof slot === "function") {
+      if(slot !== fn) {
+        return false
+      }
+      this.#sub = null
+      return true
+    }
+    const removed = slot.delete(fn)
+    if(slot.size === 0) {
+      this.#sub = null
+    } else if(slot.size === 1) {
+      this.#sub = slot.values().next().value as Subscriber
+    }
+    return removed
   }
 
   dispose(): void {
-    this.#subscribers.clear()
+    this.#sub = null
     derivedDisposers.get(this)?.()
   }
 }
@@ -107,7 +141,13 @@ class ReactiveEffect {
     if(this.disposed) {
       return
     }
-    this.cleanup()
+    // Run user cleanups first; dependency unsubscription is deferred so that
+    // deps that are re-read in this run are not torn down and re-added.
+    for(const cleanup of this.cleanups.splice(0)) {
+      cleanup()
+    }
+    const previousDeps = this.deps
+    this.deps = new Set()
     const previous = activeEffect
     activeEffect = this
     try {
@@ -115,15 +155,11 @@ class ReactiveEffect {
     } finally {
       activeEffect = previous
     }
-  }
-
-  cleanup(): void {
-    for(const dep of this.deps) {
-      dep.unsubscribe(this.notify)
-    }
-    this.deps.clear()
-    for(const cleanup of this.cleanups.splice(0)) {
-      cleanup()
+    // Drop only deps that were not re-tracked this run.
+    for(const dep of previousDeps) {
+      if(!this.deps.has(dep)) {
+        dep.unsubscribe(this.notify)
+      }
     }
   }
 
@@ -132,7 +168,13 @@ class ReactiveEffect {
       return
     }
     this.disposed = true
-    this.cleanup()
+    for(const cleanup of this.cleanups.splice(0)) {
+      cleanup()
+    }
+    for(const dep of this.deps) {
+      dep.unsubscribe(this.notify)
+    }
+    this.deps.clear()
   }
 }
 
@@ -174,7 +216,6 @@ export const batch = <T>(fn: () => T): T => {
         pending.clear()
         notify(only)
       } else {
-        // Copy to array to avoid issues with set modification during iteration
         const subscribers = [...pending]
         pending.clear()
         for(const subscriber of subscribers) {
