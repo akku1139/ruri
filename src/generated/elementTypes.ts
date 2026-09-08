@@ -254,26 +254,26 @@ export type GeneratedGlobalAttributes = {
     "accesskey"?: string
 /** "on" | "off" | "none" | "sentences" | "words" | "characters" | (string & {}) */
     "autocapitalize"?: "on" | "off" | "none" | "sentences" | "words" | "characters" | (string & {})
-/** "" | "on" | "off" | (string & {}) */
-    "autocorrect"?: "" | "on" | "off" | (string & {})
+/** boolean | "" | "on" | "off" | (string & {}) */
+    "autocorrect"?: boolean | "" | "on" | "off" | (string & {})
 /** boolean */
     "autofocus"?: boolean
 /** string | Array<string> */
     "class"?: string | Array<string>
-/** "" | "true" | "false" | "plaintext-only" | (string & {}) */
-    "contenteditable"?: "" | "true" | "false" | "plaintext-only" | (string & {})
+/** boolean | "" | "true" | "false" | "plaintext-only" | (string & {}) */
+    "contenteditable"?: boolean | "" | "true" | "false" | "plaintext-only" | (string & {})
 /** "ltr" | "rtl" | "auto" | (string & {}) */
     "dir"?: "ltr" | "rtl" | "auto" | (string & {})
-/** "true" | "false" | (string & {}) */
-    "draggable"?: "true" | "false" | (string & {})
+/** boolean | "true" | "false" | (string & {}) */
+    "draggable"?: boolean | "true" | "false" | (string & {})
 /** "enter" | "done" | "go" | "next" | "previous" | "search" | "send" | (string & {}) */
     "enterkeyhint"?: "enter" | "done" | "go" | "next" | "previous" | "search" | "send" | (string & {})
 /** number | string */
     "headingoffset"?: number | string
 /** boolean */
     "headingreset"?: boolean
-/** "" | "until-found" | "hidden" | (string & {}) */
-    "hidden"?: "" | "until-found" | "hidden" | (string & {})
+/** boolean | "" | "until-found" | "hidden" | (string & {}) */
+    "hidden"?: boolean | "" | "until-found" | "hidden" | (string & {})
 /** string */
     "id"?: string
 /** boolean */
@@ -300,8 +300,8 @@ export type GeneratedGlobalAttributes = {
     "popover"?: "" | "auto" | "manual" | "hint" | (string & {})
 /** string */
     "slot"?: string
-/** "" | "true" | "false" | (string & {}) */
-    "spellcheck"?: "" | "true" | "false" | (string & {})
+/** boolean | "" | "true" | "false" | (string & {}) */
+    "spellcheck"?: boolean | "" | "true" | "false" | (string & {})
 /** string | Record<string, string | number> */
     "style"?: string | Record<string, string | number>
 /** number | string */
@@ -310,8 +310,8 @@ export type GeneratedGlobalAttributes = {
     "title"?: string
 /** "" | "yes" | "no" | (string & {}) */
     "translate"?: "" | "yes" | "no" | (string & {})
-/** "" | "true" | "false" | (string & {}) */
-    "writingsuggestions"?: "" | "true" | "false" | (string & {})
+/** boolean | "" | "true" | "false" | (string & {}) */
+    "writingsuggestions"?: boolean | "" | "true" | "false" | (string & {})
   }
 
 
@@ -1630,15 +1630,15 @@ export type GeneratedSvgElementAttributes = {
     "aria-valuenow"?: string
     "aria-valuetext"?: string
     "role"?: string
-    "requiredExtensions"?: string
+    "requiredExtensions"?: boolean
     "systemLanguage"?: string
     "id"?: string
-    "tabindex"?: string
-    "autofocus"?: string
+    "tabindex"?: number | string
+    "autofocus"?: boolean
     "lang"?: string
     "xml:space"?: string
-    "class"?: string
-    "style"?: string
+    "class"?: string | Array<string>
+    "style"?: string | Record<string, string | number>
     "alignment-baseline"?: string
     "baseline-shift"?: string
     "clip"?: string
@@ -1763,15 +1763,15 @@ export type GeneratedSvgElementAttributes = {
     "aria-valuenow"?: string
     "aria-valuetext"?: string
     "role"?: string
-    "requiredExtensions"?: string
+    "requiredExtensions"?: boolean
     "systemLanguage"?: string
     "id"?: string
-    "tabindex"?: string
-    "autofocus"?: string
+    "tabindex"?: number | string
+    "autofocus"?: boolean
     "lang"?: string
     "xml:space"?: string
-    "class"?: string
-    "style"?: string
+    "class"?: string | Array<string>
+    "style"?: string | Record<string, string | number>
     "alignment-baseline"?: string
     "baseline-shift"?: string
     "clip"?: string
@@ -1842,12 +1842,12 @@ export type GeneratedSvgElementAttributes = {
  */
   "defs"?: {
     "id"?: string
-    "tabindex"?: string
-    "autofocus"?: string
+    "tabindex"?: number | string
+    "autofocus"?: boolean
     "lang"?: string
     "xml:space"?: string
-    "class"?: string
-    "style"?: string
+    "class"?: string | Array<string>
+    "style"?: string | Record<string, string | number>
     "alignment-baseline"?: string
     "baseline-shift"?: string
     "clip"?: string
@@ -1968,13 +1968,13 @@ export type GeneratedSvgElementAttributes = {
     "aria-valuetext"?: string
     "role"?: string
     "id"?: string
-    "tabindex"?: string
-    "autofocus"?: string
+    "tabindex"?: number | string
+    "autofocus"?: boolean
     "lang"?: string
     "xml:space"?: string
-    "class"?: string
-    "style"?: string
-    "requiredExtensions"?: string
+    "class"?: string | Array<string>
+    "style"?: string | Record<string, string | number>
+    "requiredExtensions"?: boolean
     "systemLanguage"?: string
     "alignment-baseline"?: string
     "baseline-shift"?: string
@@ -2094,15 +2094,15 @@ export type GeneratedSvgElementAttributes = {
     "aria-valuenow"?: string
     "aria-valuetext"?: string
     "role"?: string
-    "requiredExtensions"?: string
+    "requiredExtensions"?: boolean
     "systemLanguage"?: string
     "id"?: string
-    "tabindex"?: string
-    "autofocus"?: string
+    "tabindex"?: number | string
+    "autofocus"?: boolean
     "lang"?: string
     "xml:space"?: string
-    "class"?: string
-    "style"?: string
+    "class"?: string | Array<string>
+    "style"?: string | Record<string, string | number>
     "alignment-baseline"?: string
     "baseline-shift"?: string
     "clip"?: string
@@ -2224,15 +2224,15 @@ export type GeneratedSvgElementAttributes = {
     "aria-valuenow"?: string
     "aria-valuetext"?: string
     "role"?: string
-    "requiredExtensions"?: string
+    "requiredExtensions"?: boolean
     "systemLanguage"?: string
     "id"?: string
-    "tabindex"?: string
-    "autofocus"?: string
+    "tabindex"?: number | string
+    "autofocus"?: boolean
     "lang"?: string
     "xml:space"?: string
-    "class"?: string
-    "style"?: string
+    "class"?: string | Array<string>
+    "style"?: string | Record<string, string | number>
     "alignment-baseline"?: string
     "baseline-shift"?: string
     "clip"?: string
@@ -2304,12 +2304,12 @@ export type GeneratedSvgElementAttributes = {
  */
   "linearGradient"?: {
     "id"?: string
-    "tabindex"?: string
-    "autofocus"?: string
+    "tabindex"?: number | string
+    "autofocus"?: boolean
     "lang"?: string
     "xml:space"?: string
-    "class"?: string
-    "style"?: string
+    "class"?: string | Array<string>
+    "style"?: string | Record<string, string | number>
     "alignment-baseline"?: string
     "baseline-shift"?: string
     "clip"?: string
@@ -2386,12 +2386,12 @@ export type GeneratedSvgElementAttributes = {
  */
   "marker"?: {
     "id"?: string
-    "tabindex"?: string
-    "autofocus"?: string
+    "tabindex"?: number | string
+    "autofocus"?: boolean
     "lang"?: string
     "xml:space"?: string
-    "class"?: string
-    "style"?: string
+    "class"?: string | Array<string>
+    "style"?: string | Record<string, string | number>
     "alignment-baseline"?: string
     "baseline-shift"?: string
     "clip"?: string
@@ -2466,12 +2466,12 @@ export type GeneratedSvgElementAttributes = {
  */
   "metadata"?: {
     "id"?: string
-    "tabindex"?: string
-    "autofocus"?: string
+    "tabindex"?: number | string
+    "autofocus"?: boolean
     "lang"?: string
     "xml:space"?: string
-    "class"?: string
-    "style"?: string
+    "class"?: string | Array<string>
+    "style"?: string | Record<string, string | number>
     "d"?: number | string
     "pathLength"?: string
   }
@@ -2480,12 +2480,12 @@ export type GeneratedSvgElementAttributes = {
  */
   "pattern"?: {
     "id"?: string
-    "tabindex"?: string
-    "autofocus"?: string
+    "tabindex"?: number | string
+    "autofocus"?: boolean
     "lang"?: string
     "xml:space"?: string
-    "class"?: string
-    "style"?: string
+    "class"?: string | Array<string>
+    "style"?: string | Record<string, string | number>
     "alignment-baseline"?: string
     "baseline-shift"?: string
     "clip"?: string
@@ -2612,15 +2612,15 @@ export type GeneratedSvgElementAttributes = {
     "aria-valuenow"?: string
     "aria-valuetext"?: string
     "role"?: string
-    "requiredExtensions"?: string
+    "requiredExtensions"?: boolean
     "systemLanguage"?: string
     "id"?: string
-    "tabindex"?: string
-    "autofocus"?: string
+    "tabindex"?: number | string
+    "autofocus"?: boolean
     "lang"?: string
     "xml:space"?: string
-    "class"?: string
-    "style"?: string
+    "class"?: string | Array<string>
+    "style"?: string | Record<string, string | number>
     "alignment-baseline"?: string
     "baseline-shift"?: string
     "clip"?: string
@@ -2737,15 +2737,15 @@ export type GeneratedSvgElementAttributes = {
     "aria-valuenow"?: string
     "aria-valuetext"?: string
     "role"?: string
-    "requiredExtensions"?: string
+    "requiredExtensions"?: boolean
     "systemLanguage"?: string
     "id"?: string
-    "tabindex"?: string
-    "autofocus"?: string
+    "tabindex"?: number | string
+    "autofocus"?: boolean
     "lang"?: string
     "xml:space"?: string
-    "class"?: string
-    "style"?: string
+    "class"?: string | Array<string>
+    "style"?: string | Record<string, string | number>
     "alignment-baseline"?: string
     "baseline-shift"?: string
     "clip"?: string
@@ -2814,12 +2814,12 @@ export type GeneratedSvgElementAttributes = {
  */
   "radialGradient"?: {
     "id"?: string
-    "tabindex"?: string
-    "autofocus"?: string
+    "tabindex"?: number | string
+    "autofocus"?: boolean
     "lang"?: string
     "xml:space"?: string
-    "class"?: string
-    "style"?: string
+    "class"?: string | Array<string>
+    "style"?: string | Record<string, string | number>
     "alignment-baseline"?: string
     "baseline-shift"?: string
     "clip"?: string
@@ -2946,15 +2946,15 @@ export type GeneratedSvgElementAttributes = {
     "aria-valuenow"?: string
     "aria-valuetext"?: string
     "role"?: string
-    "requiredExtensions"?: string
+    "requiredExtensions"?: boolean
     "systemLanguage"?: string
     "id"?: string
-    "tabindex"?: string
-    "autofocus"?: string
+    "tabindex"?: number | string
+    "autofocus"?: boolean
     "lang"?: string
     "xml:space"?: string
-    "class"?: string
-    "style"?: string
+    "class"?: string | Array<string>
+    "style"?: string | Record<string, string | number>
     "alignment-baseline"?: string
     "baseline-shift"?: string
     "clip"?: string
@@ -3028,12 +3028,12 @@ export type GeneratedSvgElementAttributes = {
  */
   "script"?: {
     "id"?: string
-    "tabindex"?: string
-    "autofocus"?: string
+    "tabindex"?: number | string
+    "autofocus"?: boolean
     "lang"?: string
     "xml:space"?: string
-    "class"?: string
-    "style"?: string
+    "class"?: string | Array<string>
+    "style"?: string | Record<string, string | number>
     "xlink:href"?: string
     "xlink:title"?: string
     "type"?: string
@@ -3045,12 +3045,12 @@ export type GeneratedSvgElementAttributes = {
  */
   "stop"?: {
     "id"?: string
-    "tabindex"?: string
-    "autofocus"?: string
+    "tabindex"?: number | string
+    "autofocus"?: boolean
     "lang"?: string
     "xml:space"?: string
-    "class"?: string
-    "style"?: string
+    "class"?: string | Array<string>
+    "style"?: string | Record<string, string | number>
     "alignment-baseline"?: string
     "baseline-shift"?: string
     "clip"?: string
@@ -3118,12 +3118,12 @@ export type GeneratedSvgElementAttributes = {
  */
   "style"?: {
     "id"?: string
-    "tabindex"?: string
-    "autofocus"?: string
+    "tabindex"?: number | string
+    "autofocus"?: boolean
     "lang"?: string
     "xml:space"?: string
-    "class"?: string
-    "style"?: string
+    "class"?: string | Array<string>
+    "style"?: string | Record<string, string | number>
     "type"?: string
     "media"?: string
     "title"?: string
@@ -3181,15 +3181,15 @@ export type GeneratedSvgElementAttributes = {
     "aria-valuenow"?: string
     "aria-valuetext"?: string
     "role"?: string
-    "requiredExtensions"?: string
+    "requiredExtensions"?: boolean
     "systemLanguage"?: string
     "id"?: string
-    "tabindex"?: string
-    "autofocus"?: string
+    "tabindex"?: number | string
+    "autofocus"?: boolean
     "lang"?: string
     "xml:space"?: string
-    "class"?: string
-    "style"?: string
+    "class"?: string | Array<string>
+    "style"?: string | Record<string, string | number>
     "alignment-baseline"?: string
     "baseline-shift"?: string
     "clip"?: string
@@ -3310,15 +3310,15 @@ export type GeneratedSvgElementAttributes = {
     "aria-valuenow"?: string
     "aria-valuetext"?: string
     "role"?: string
-    "requiredExtensions"?: string
+    "requiredExtensions"?: boolean
     "systemLanguage"?: string
     "id"?: string
-    "tabindex"?: string
-    "autofocus"?: string
+    "tabindex"?: number | string
+    "autofocus"?: boolean
     "lang"?: string
     "xml:space"?: string
-    "class"?: string
-    "style"?: string
+    "class"?: string | Array<string>
+    "style"?: string | Record<string, string | number>
     "alignment-baseline"?: string
     "baseline-shift"?: string
     "clip"?: string
@@ -3434,12 +3434,12 @@ export type GeneratedSvgElementAttributes = {
     "aria-valuetext"?: string
     "role"?: string
     "id"?: string
-    "tabindex"?: string
-    "autofocus"?: string
+    "tabindex"?: number | string
+    "autofocus"?: boolean
     "lang"?: string
     "xml:space"?: string
-    "class"?: string
-    "style"?: string
+    "class"?: string | Array<string>
+    "style"?: string | Record<string, string | number>
     "alignment-baseline"?: string
     "baseline-shift"?: string
     "clip"?: string
@@ -3562,15 +3562,15 @@ export type GeneratedSvgElementAttributes = {
     "aria-valuenow"?: string
     "aria-valuetext"?: string
     "role"?: string
-    "requiredExtensions"?: string
+    "requiredExtensions"?: boolean
     "systemLanguage"?: string
     "id"?: string
-    "tabindex"?: string
-    "autofocus"?: string
+    "tabindex"?: number | string
+    "autofocus"?: boolean
     "lang"?: string
     "xml:space"?: string
-    "class"?: string
-    "style"?: string
+    "class"?: string | Array<string>
+    "style"?: string | Record<string, string | number>
     "alignment-baseline"?: string
     "baseline-shift"?: string
     "clip"?: string
@@ -3692,15 +3692,15 @@ export type GeneratedSvgElementAttributes = {
     "aria-valuenow"?: string
     "aria-valuetext"?: string
     "role"?: string
-    "requiredExtensions"?: string
+    "requiredExtensions"?: boolean
     "systemLanguage"?: string
     "id"?: string
-    "tabindex"?: string
-    "autofocus"?: string
+    "tabindex"?: number | string
+    "autofocus"?: boolean
     "lang"?: string
     "xml:space"?: string
-    "class"?: string
-    "style"?: string
+    "class"?: string | Array<string>
+    "style"?: string | Record<string, string | number>
     "alignment-baseline"?: string
     "baseline-shift"?: string
     "clip"?: string
@@ -3777,12 +3777,12 @@ export type GeneratedSvgElementAttributes = {
  */
   "title"?: {
     "id"?: string
-    "tabindex"?: string
-    "autofocus"?: string
+    "tabindex"?: number | string
+    "autofocus"?: boolean
     "lang"?: string
     "xml:space"?: string
-    "class"?: string
-    "style"?: string
+    "class"?: string | Array<string>
+    "style"?: string | Record<string, string | number>
     "x"?: string
     "y"?: string
     "dx"?: string
@@ -3845,13 +3845,13 @@ export type GeneratedSvgElementAttributes = {
     "aria-valuetext"?: string
     "role"?: string
     "id"?: string
-    "tabindex"?: string
-    "autofocus"?: string
+    "tabindex"?: number | string
+    "autofocus"?: boolean
     "lang"?: string
     "xml:space"?: string
-    "class"?: string
-    "style"?: string
-    "requiredExtensions"?: string
+    "class"?: string | Array<string>
+    "style"?: string | Record<string, string | number>
+    "requiredExtensions"?: boolean
     "systemLanguage"?: string
     "alignment-baseline"?: string
     "baseline-shift"?: string
@@ -3975,12 +3975,12 @@ export type GeneratedSvgElementAttributes = {
     "aria-valuetext"?: string
     "role"?: string
     "id"?: string
-    "tabindex"?: string
-    "autofocus"?: string
+    "tabindex"?: number | string
+    "autofocus"?: boolean
     "lang"?: string
     "xml:space"?: string
-    "class"?: string
-    "style"?: string
+    "class"?: string | Array<string>
+    "style"?: string | Record<string, string | number>
     "viewBox"?: string
     "preserveAspectRatio"?: string
   }

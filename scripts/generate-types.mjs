@@ -117,7 +117,12 @@ const parseSvgDefinitions = (xml) => {
         return
       }
       if(!attributes.has(attributeName)) {
-        attributes.set(attributeName, type)
+        // SVG definitions.xml does not mark booleans; mirror HTML boolean names.
+        const svgBoolean = new Set([
+          "autofocus", "autoplay", "checked", "disabled", "externalResourcesRequired",
+          "focusable", "preserveAlpha", "requiredExtensions", "requiredFeatures",
+        ])
+        attributes.set(attributeName, svgBoolean.has(attributeName) ? "boolean" : type)
       }
     }
 
@@ -371,6 +376,7 @@ const INPUT_TYPES = [
 ]
 
 const ATTR_TYPE_OVERRIDES = {
+  "autofocus": "boolean",
   "class": "string | Array<string>",
   "style": "string | Record<string, string | number>",
   "tabindex": "number | string",
@@ -400,6 +406,50 @@ const ATTR_TYPE_OVERRIDES = {
   "form.enctype": '"application/x-www-form-urlencoded" | "multipart/form-data" | "text/plain" | (string & {})',
 }
 
+/**
+ * Attributes whose DOM / JSX APIs commonly accept a real boolean even when the
+ * WHATWG value column lists keywords (e.g. hidden="" | "hidden" | "until-found").
+ * Without `boolean` in the union, `{ hidden: false }` fails to match the props
+ * overload and falls through to the children rest signature.
+ */
+const BOOLEAN_JSX_ATTRIBUTES = new Set([
+  "hidden",
+  "contenteditable",
+  "draggable",
+  "spellcheck",
+  "writingsuggestions",
+  "autocorrect",
+  "itemscope",
+  "autofocus",
+  "disabled",
+  "checked",
+  "selected",
+  "readonly",
+  "required",
+  "multiple",
+  "open",
+  "nomodule",
+  "async",
+  "defer",
+  "autoplay",
+  "controls",
+  "loop",
+  "muted",
+  "default",
+  "ismap",
+  "novalidate",
+  "formnovalidate",
+  "reversed",
+  "allowfullscreen",
+  "playsinline",
+  "inert",
+  "declare",
+  "compact",
+  "noresize",
+  "noshade",
+  "nowrap",
+])
+
 const resolveAttributeType = (elementName, attributeName, valueDescription) => {
   const specific = ATTR_TYPE_OVERRIDES[`${elementName}.${attributeName}`]
   if(specific) {
@@ -409,7 +459,15 @@ const resolveAttributeType = (elementName, attributeName, valueDescription) => {
   if(byName) {
     return byName
   }
-  return mapValueType(valueDescription)
+  const mapped = mapValueType(valueDescription)
+  if(valueDescription === "Boolean attribute") {
+    return "boolean"
+  }
+  // Keyword / enumerated attributes that still accept boolean in the element factory.
+  if(BOOLEAN_JSX_ATTRIBUTES.has(attributeName) && mapped !== "boolean" && !mapped.startsWith("boolean ")) {
+    return `boolean | ${mapped}`
+  }
+  return mapped
 }
 
 // ---------- @webref helpers ----------
@@ -655,6 +713,24 @@ export const AMBIGUOUS_ELEMENT_NAMES: ReadonlySet<string> = new Set(${JSON.strin
 
   const webrefHref = new Map([...webref.html, ...webref.svg, ...webref.mathml].map((entry) => [entry.name, entry.href]))
   const mdnCite = new Map(markuplintSpec.specs.map((entry) => [entry.name, entry.cite]))
+
+  // Apply HTML-aligned overrides onto SVG maps (definitions.xml lacks boolean flags).
+  for(const attributes of svgDefinitions.values()) {
+    for(const [key, type] of Object.entries(ATTR_TYPE_OVERRIDES)) {
+      if(key.includes(".")) {
+        continue
+      }
+      if(attributes.has(key)) {
+        attributes.set(key, type)
+      }
+    }
+    for(const name of BOOLEAN_JSX_ATTRIBUTES) {
+      if(attributes.has(name) && attributes.get(name) === "string") {
+        attributes.set(name, "boolean")
+      }
+    }
+  }
+
   const svgSections = [...svgDefinitions.entries()]
       .sort(([left], [right]) => left.localeCompare(right))
       .map(([elementName, attributes]) => {
