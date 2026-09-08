@@ -308,6 +308,9 @@ const parseAttributeIndex = (source) => {
  * - anything else                  -> string
  */
 const mapValueType = (value) => {
+  if(!value) {
+    return "string"
+  }
   if(value === "Boolean attribute") {
     return "boolean"
   }
@@ -324,11 +327,89 @@ const mapValueType = (value) => {
     return [...new Set(keywords)].join(" | ") + " | (string & {})"
   }
 
-  if(/\binteger\b|\bfloating-point\b/.test(value)) {
+  if(/\bValid non-negative integer\b/i.test(value)
+      || /\bValid integer\b/i.test(value)
+      || /\bValid floating-point number\b/i.test(value)
+      || /\bValid list of floating-point numbers\b/i.test(value)) {
     return "number | string"
   }
 
+  if(/\bValid floating-point number greater than zero, or\b/i.test(value)) {
+    return '"any" | number | string'
+  }
+
+  if(/\bValid non-empty URL potentially surrounded by spaces\b/i.test(value)
+      || /\bValid URL potentially surrounded by spaces\b/i.test(value)
+      || /\bvalid non-empty URLs\b/i.test(value)) {
+    return "string | URL"
+  }
+
+  if(/\bValid navigable target name or keyword\b/i.test(value)) {
+    return '"_blank" | "_self" | "_parent" | "_top" | (string & {})'
+  }
+
+  if(/\bReferrer policy\b/i.test(value)) {
+    return '"no-referrer" | "no-referrer-when-downgrade" | "origin" | "origin-when-cross-origin" | "same-origin" | "strict-origin" | "strict-origin-when-cross-origin" | "unsafe-url" | (string & {})'
+  }
+
+  if(/\bVaries\b/i.test(value)) {
+    return "string | number"
+  }
+
+  // Explicit prose that is still just free text / tokens / MIME / language / etc.
   return "string"
+}
+
+/**
+ * Per-attribute refinements the Value column cannot express alone (same name
+ * on different elements, or framework-level unions). Key is "attr" or "el.attr".
+ */
+const INPUT_TYPES = [
+  "button", "checkbox", "color", "date", "datetime-local", "email", "file",
+  "hidden", "image", "month", "number", "password", "radio", "range", "reset",
+  "search", "submit", "tel", "text", "time", "url", "week",
+]
+
+const ATTR_TYPE_OVERRIDES = {
+  "class": "string | Array<string>",
+  "style": "string | Record<string, string | number>",
+  "tabindex": "number | string",
+  "input.type": INPUT_TYPES.map((t) => JSON.stringify(t)).join(" | ") + " | (string & {})",
+  "button.type": '"submit" | "reset" | "button" | (string & {})',
+  "script.type": '"module" | "importmap" | "speculationrules" | (string & {})',
+  "ol.type": '"1" | "a" | "A" | "i" | "I" | (string & {})',
+  "a.target": '"_blank" | "_self" | "_parent" | "_top" | (string & {})',
+  "base.target": '"_blank" | "_self" | "_parent" | "_top" | (string & {})',
+  "form.target": '"_blank" | "_self" | "_parent" | "_top" | (string & {})',
+  "area.target": '"_blank" | "_self" | "_parent" | "_top" | (string & {})',
+  "input.value": "string | number",
+  "option.value": "string",
+  "li.value": "number | string",
+  "meter.value": "number | string",
+  "progress.value": "number | string",
+  "input.min": "string | number",
+  "input.max": "string | number",
+  "meter.min": "number | string",
+  "meter.max": "number | string",
+  "progress.max": "number | string",
+  "input.step": '"any" | number | string',
+  "textarea.wrap": '"hard" | "soft" | "off" | (string & {})',
+  "th.scope": '"row" | "col" | "rowgroup" | "colgroup" | (string & {})',
+  "track.kind": '"subtitles" | "captions" | "descriptions" | "chapters" | "metadata" | (string & {})',
+  "form.method": '"get" | "post" | "dialog" | (string & {})',
+  "form.enctype": '"application/x-www-form-urlencoded" | "multipart/form-data" | "text/plain" | (string & {})',
+}
+
+const resolveAttributeType = (elementName, attributeName, valueDescription) => {
+  const specific = ATTR_TYPE_OVERRIDES[`${elementName}.${attributeName}`]
+  if(specific) {
+    return specific
+  }
+  const byName = ATTR_TYPE_OVERRIDES[attributeName]
+  if(byName) {
+    return byName
+  }
+  return mapValueType(valueDescription)
 }
 
 // ---------- @webref helpers ----------
@@ -522,9 +603,8 @@ export const AMBIGUOUS_ELEMENT_NAMES: ReadonlySet<string> = new Set(${JSON.strin
     if(attribute.description && !attributeDescriptions.has(attribute.name)) {
       attributeDescriptions.set(attribute.name, docLine(attribute.description))
     }
-    const type = mapValueType(attribute.value)
     if(attribute.isGlobal) {
-      globalAttributes[attribute.name] = type
+      globalAttributes[attribute.name] = resolveAttributeType("__global__", attribute.name, attribute.value)
       continue
     }
     for(const elementName of attribute.elementNames) {
@@ -532,7 +612,11 @@ export const AMBIGUOUS_ELEMENT_NAMES: ReadonlySet<string> = new Set(${JSON.strin
         continue
       }
       elementAttributes[elementName] ??= {}
-      elementAttributes[elementName][attribute.name] = type
+      elementAttributes[elementName][attribute.name] = resolveAttributeType(
+          elementName,
+          attribute.name,
+          attribute.value,
+      )
     }
   }
 
@@ -540,7 +624,32 @@ export const AMBIGUOUS_ELEMENT_NAMES: ReadonlySet<string> = new Set(${JSON.strin
   for(const [elementName, info] of htmlElements) {
     elementAttributes[elementName] ??= {}
     for(const attributeName of info.attributes) {
-      elementAttributes[elementName][attributeName] ??= "string"
+      if(elementAttributes[elementName][attributeName] === undefined) {
+        elementAttributes[elementName][attributeName] = resolveAttributeType(
+            elementName,
+            attributeName,
+            "",
+        )
+      }
+    }
+  }
+
+  // Curated overrides win over weaker index types.
+  for(const [key, type] of Object.entries(ATTR_TYPE_OVERRIDES)) {
+    if(key.includes(".")) {
+      const [elementName, attributeName] = key.split(".")
+      if(elementAttributes[elementName]) {
+        elementAttributes[elementName][attributeName] = type
+      }
+      continue
+    }
+    if(key in globalAttributes) {
+      globalAttributes[key] = type
+    }
+    for(const attributes of Object.values(elementAttributes)) {
+      if(key in attributes) {
+        attributes[key] = type
+      }
     }
   }
 

@@ -258,8 +258,8 @@ export type GeneratedGlobalAttributes = {
     "autocorrect"?: "" | "on" | "off" | (string & {})
 /** boolean */
     "autofocus"?: boolean
-/** string */
-    "class"?: string
+/** string | Array<string> */
+    "class"?: string | Array<string>
 /** "" | "true" | "false" | "plaintext-only" | (string & {}) */
     "contenteditable"?: "" | "true" | "false" | "plaintext-only" | (string & {})
 /** "ltr" | "rtl" | "auto" | (string & {}) */
@@ -282,8 +282,8 @@ export type GeneratedGlobalAttributes = {
     "inputmode"?: "none" | "text" | "tel" | "email" | "url" | "numeric" | "decimal" | "search" | (string & {})
 /** string */
     "is"?: string
-/** string */
-    "itemid"?: string
+/** string | URL */
+    "itemid"?: string | URL
 /** string */
     "itemprop"?: string
 /** string */
@@ -302,8 +302,8 @@ export type GeneratedGlobalAttributes = {
     "slot"?: string
 /** "" | "true" | "false" | (string & {}) */
     "spellcheck"?: "" | "true" | "false" | (string & {})
-/** string */
-    "style"?: string
+/** string | Record<string, string | number> */
+    "style"?: string | Record<string, string | number>
 /** number | string */
     "tabindex"?: number | string
 /** string */
@@ -324,17 +324,17 @@ export type GeneratedHtmlElementAttributes = {
 /** Whether to download the resource instead of navigating to it, and its filename if so */
     "download"?: string
 /** Address of the hyperlink */
-    "href"?: string
+    "href"?: string | URL
 /** Language of the linked resource */
     "hreflang"?: string
 /** URLs to ping */
-    "ping"?: string
+    "ping"?: string | URL
 /** Referrer policy for fetches initiated by the element */
-    "referrerpolicy"?: string
+    "referrerpolicy"?: "no-referrer" | "no-referrer-when-downgrade" | "origin" | "origin-when-cross-origin" | "same-origin" | "strict-origin" | "strict-origin-when-cross-origin" | "unsafe-url" | (string & {})
 /** Relationship between the location in the document containing the hyperlink and the destination resource */
     "rel"?: string
 /** Navigable for hyperlink navigation */
-    "target"?: string
+    "target"?: "_blank" | "_self" | "_parent" | "_top" | (string & {})
 /** Hint for the type of the referenced resource */
     "type"?: string
   }
@@ -365,17 +365,17 @@ export type GeneratedHtmlElementAttributes = {
 /** Whether to download the resource instead of navigating to it, and its filename if so */
     "download"?: string
 /** Address of the hyperlink */
-    "href"?: string
+    "href"?: string | URL
 /** URLs to ping */
-    "ping"?: string
+    "ping"?: string | URL
 /** Referrer policy for fetches initiated by the element */
-    "referrerpolicy"?: string
+    "referrerpolicy"?: "no-referrer" | "no-referrer-when-downgrade" | "origin" | "origin-when-cross-origin" | "same-origin" | "strict-origin" | "strict-origin-when-cross-origin" | "unsafe-url" | (string & {})
 /** Relationship between the location in the document containing the hyperlink and the destination resource */
     "rel"?: string
 /** The kind of shape to be created in an image map */
     "shape"?: "circle" | "default" | "poly" | "rect" | (string & {})
 /** Navigable for hyperlink navigation */
-    "target"?: string
+    "target"?: "_blank" | "_self" | "_parent" | "_top" | (string & {})
 /** Language of the linked resource */
     "hreflang"?: string
 /** Hint for the type of the referenced resource */
@@ -415,7 +415,7 @@ export type GeneratedHtmlElementAttributes = {
 /** Hints how much buffering the media resource will likely need */
     "preload"?: "" | "none" | "metadata" | "auto" | (string & {})
 /** Address of the resource */
-    "src"?: string
+    "src"?: string | URL
   }
 /**
  * The b element represents a span of text to which attention is being drawn for utilitarian purposes without conveying any extra importance and with no implication of an alternate voice or mood, such as key words in a document abstract, product names in a review, actionable words in interactive text-driven software, or an article lede.
@@ -430,9 +430,9 @@ export type GeneratedHtmlElementAttributes = {
  */
   "base"?: {
 /** Address of the hyperlink */
-    "href"?: string
+    "href"?: string | URL
 /** Navigable for hyperlink navigation */
-    "target"?: string
+    "target"?: "_blank" | "_self" | "_parent" | "_top" | (string & {})
   }
 /**
  * The bdi element represents a span of text that is to be isolated from its surroundings for the purposes of bidirectional text formatting.
@@ -455,7 +455,7 @@ export type GeneratedHtmlElementAttributes = {
  */
   "blockquote"?: {
 /** Link to the source of the quotation or more information about the edit */
-    "cite"?: string
+    "cite"?: string | URL
   }
 /**
  * The body element represents the contents of the document.
@@ -485,7 +485,7 @@ export type GeneratedHtmlElementAttributes = {
 /** Associates the element with a form element */
     "form"?: string
 /** URL to use for form submission */
-    "formaction"?: string
+    "formaction"?: string | URL
 /** Entry list encoding type to use for form submission */
     "formenctype"?: "application/x-www-form-urlencoded" | "multipart/form-data" | "text/plain" | (string & {})
 /** Variant to use for form submission */
@@ -493,7 +493,7 @@ export type GeneratedHtmlElementAttributes = {
 /** Bypass form control validation for form submission */
     "formnovalidate"?: boolean
 /** Navigable for form submission */
-    "formtarget"?: string
+    "formtarget"?: "_blank" | "_self" | "_parent" | "_top" | (string & {})
 /** Name of the element to use for form submission and in the form.elements API form.elements API. --> */
     "name"?: string
 /** Targets a popover element to toggle, show, or hide */
@@ -580,7 +580,7 @@ export type GeneratedHtmlElementAttributes = {
  */
   "del"?: {
 /** Link to the source of the quotation or more information about the edit */
-    "cite"?: string
+    "cite"?: string | URL
 /** Date and (optionally) time of the change */
     "datetime"?: string
   }
@@ -647,7 +647,7 @@ export type GeneratedHtmlElementAttributes = {
 /** Vertical dimension */
     "height"?: number | string
 /** Address of the resource */
-    "src"?: string
+    "src"?: string | URL
 /** Hint for the type of the referenced resource */
     "type"?: string
 /** Horizontal dimension */
@@ -694,7 +694,7 @@ export type GeneratedHtmlElementAttributes = {
 /** Character encodings to use for form submission */
     "accept-charset"?: "UTF-8" | (string & {})
 /** URL to use for form submission */
-    "action"?: string
+    "action"?: string | URL
 /** Default setting for autofill feature for controls in the form */
     "autocomplete"?: "on" | "off" | (string & {})
 /** Entry list encoding type to use for form submission */
@@ -706,7 +706,7 @@ export type GeneratedHtmlElementAttributes = {
 /** Bypass form control validation for form submission */
     "novalidate"?: boolean
 /** Navigable for hyperlink navigation */
-    "target"?: string
+    "target"?: "_blank" | "_self" | "_parent" | "_top" | (string & {})
 /** Relationship between the location in the document containing the hyperlink and the destination resource */
     "rel"?: string
   }
@@ -808,13 +808,13 @@ export type GeneratedHtmlElementAttributes = {
 /** Used when determining loading deferral */
     "loading"?: "lazy" | "eager" | (string & {})
 /** Name of the element to use for form submission and in the form.elements API form.elements API. --> */
-    "name"?: string
+    "name"?: "_blank" | "_self" | "_parent" | "_top" | (string & {})
 /** Referrer policy for fetches initiated by the element */
-    "referrerpolicy"?: string
+    "referrerpolicy"?: "no-referrer" | "no-referrer-when-downgrade" | "origin" | "origin-when-cross-origin" | "same-origin" | "strict-origin" | "strict-origin-when-cross-origin" | "unsafe-url" | (string & {})
 /** Security rules for nested content */
     "sandbox"?: "allow-downloads" | "allow-forms" | "allow-modals" | "allow-orientation-lock" | "allow-pointer-lock" | "allow-popups" | "allow-popups-to-escape-sandbox" | "allow-presentation" | "allow-same-origin" | "allow-scripts" | "allow-top-navigation" | "allow-top-navigation-by-user-activation" | "allow-top-navigation-to-custom-protocols" | (string & {})
 /** Address of the resource */
-    "src"?: string
+    "src"?: string | URL
 /** A document to render in the iframe */
     "srcdoc"?: string
 /** Horizontal dimension */
@@ -842,11 +842,11 @@ export type GeneratedHtmlElementAttributes = {
 /** Used when determining loading deferral */
     "loading"?: "lazy" | "eager" | (string & {})
 /** Referrer policy for fetches initiated by the element */
-    "referrerpolicy"?: string
+    "referrerpolicy"?: "no-referrer" | "no-referrer-when-downgrade" | "origin" | "origin-when-cross-origin" | "same-origin" | "strict-origin" | "strict-origin-when-cross-origin" | "unsafe-url" | (string & {})
 /** Sizes of the icons (for rel =" icon ") */
     "sizes"?: string
 /** Address of the resource */
-    "src"?: string
+    "src"?: string | URL
 /** Images to use in different situations, e.g., high-resolution displays, small monitors, etc. */
     "srcset"?: string
 /** Name of image map to use */
@@ -878,7 +878,7 @@ export type GeneratedHtmlElementAttributes = {
 /** Associates the element with a form element */
     "form"?: string
 /** URL to use for form submission */
-    "formaction"?: string
+    "formaction"?: string | URL
 /** Entry list encoding type to use for form submission */
     "formenctype"?: "application/x-www-form-urlencoded" | "multipart/form-data" | "text/plain" | (string & {})
 /** Variant to use for form submission */
@@ -886,17 +886,17 @@ export type GeneratedHtmlElementAttributes = {
 /** Bypass form control validation for form submission */
     "formnovalidate"?: boolean
 /** Navigable for form submission */
-    "formtarget"?: string
+    "formtarget"?: "_blank" | "_self" | "_parent" | "_top" | (string & {})
 /** Vertical dimension */
     "height"?: number | string
 /** List of autocomplete options */
     "list"?: string
 /** Maximum value */
-    "max"?: string
+    "max"?: string | number
 /** Maximum length of value */
     "maxlength"?: number | string
 /** Minimum value */
-    "min"?: string
+    "min"?: string | number
 /** Minimum length of value */
     "minlength"?: number | string
 /** Whether to allow multiple values */
@@ -918,15 +918,15 @@ export type GeneratedHtmlElementAttributes = {
 /** Size of the control */
     "size"?: number | string
 /** Address of the resource */
-    "src"?: string
+    "src"?: string | URL
 /** Granularity to be matched by the form control's value */
-    "step"?: "any" | (string & {})
+    "step"?: "any" | number | string
 /** Advisory information for the element */
     "title"?: string
 /** Hint for the type of the referenced resource */
-    "type"?: string
+    "type"?: "button" | "checkbox" | "color" | "date" | "datetime-local" | "email" | "file" | "hidden" | "image" | "month" | "number" | "password" | "radio" | "range" | "reset" | "search" | "submit" | "tel" | "text" | "time" | "url" | "week" | (string & {})
 /** Value to be used for form submission */
-    "value"?: string
+    "value"?: string | number
 /** Horizontal dimension */
     "width"?: number | string
   }
@@ -936,7 +936,7 @@ export type GeneratedHtmlElementAttributes = {
  */
   "ins"?: {
 /** Link to the source of the quotation or more information about the edit */
-    "cite"?: string
+    "cite"?: string | URL
 /** Date and (optionally) time of the change */
     "datetime"?: string
   }
@@ -988,7 +988,7 @@ export type GeneratedHtmlElementAttributes = {
 /** Sets the priority for fetches initiated by the element */
     "fetchpriority"?: "auto" | "high" | "low" | (string & {})
 /** Address of the hyperlink */
-    "href"?: string
+    "href"?: string | URL
 /** Language of the linked resource */
     "hreflang"?: string
 /** Image sizes for different page layouts (for rel =" preload ") */
@@ -1000,7 +1000,7 @@ export type GeneratedHtmlElementAttributes = {
 /** Applicable media */
     "media"?: string
 /** Referrer policy for fetches initiated by the element */
-    "referrerpolicy"?: string
+    "referrerpolicy"?: "no-referrer" | "no-referrer-when-downgrade" | "origin" | "origin-when-cross-origin" | "same-origin" | "strict-origin" | "strict-origin-when-cross-origin" | "unsafe-url" | (string & {})
 /** Relationship between the location in the document containing the hyperlink and the destination resource */
     "rel"?: string
 /** Sizes of the icons (for rel =" icon ") */
@@ -1085,13 +1085,13 @@ export type GeneratedHtmlElementAttributes = {
  */
   "object"?: {
 /** Address of the resource */
-    "data"?: string
+    "data"?: string | URL
 /** Associates the element with a form element */
     "form"?: string
 /** Vertical dimension */
     "height"?: number | string
 /** Name of the element to use for form submission and in the form.elements API form.elements API. --> */
-    "name"?: string
+    "name"?: "_blank" | "_self" | "_parent" | "_top" | (string & {})
 /** Hint for the type of the referenced resource */
     "type"?: string
 /** Horizontal dimension */
@@ -1185,7 +1185,7 @@ export type GeneratedHtmlElementAttributes = {
  */
   "q"?: {
 /** Link to the source of the quotation or more information about the edit */
-    "cite"?: string
+    "cite"?: string | URL
   }
 /**
  * The rp element can be used to provide parentheses or other content around a ruby text component of a ruby annotation, to be shown by user agents that don't support ruby annotations.
@@ -1242,9 +1242,9 @@ export type GeneratedHtmlElementAttributes = {
 /** Prevents execution in user agents that support module scripts */
     "nomodule"?: boolean
 /** Referrer policy for fetches initiated by the element */
-    "referrerpolicy"?: string
+    "referrerpolicy"?: "no-referrer" | "no-referrer-when-downgrade" | "origin" | "origin-when-cross-origin" | "same-origin" | "strict-origin" | "strict-origin-when-cross-origin" | "unsafe-url" | (string & {})
 /** Address of the resource */
-    "src"?: string
+    "src"?: string | URL
 /** Hint for the type of the referenced resource */
     "type"?: "module" | "importmap" | "speculationrules" | (string & {})
   }
@@ -1315,7 +1315,7 @@ export type GeneratedHtmlElementAttributes = {
 /** Sizes of the icons (for rel =" icon ") */
     "sizes"?: string
 /** Address of the resource */
-    "src"?: string
+    "src"?: string | URL
 /** Images to use in different situations, e.g., high-resolution displays, small monitors, etc. */
     "srcset"?: string
 /** Hint for the type of the referenced resource */
@@ -1446,7 +1446,7 @@ export type GeneratedHtmlElementAttributes = {
 /** Number of lines to show */
     "rows"?: number | string
 /** How the value of the form control is to be wrapped for form submission */
-    "wrap"?: "soft" | "hard" | (string & {})
+    "wrap"?: "hard" | "soft" | "off" | (string & {})
   }
 /**
  * The tfoot element represents the block of rows that consist of the column summaries (footers) for the parent table element, if the tfoot element has a parent and it is a table .
@@ -1512,7 +1512,7 @@ export type GeneratedHtmlElementAttributes = {
 /** User-visible label */
     "label"?: string
 /** Address of the resource */
-    "src"?: string
+    "src"?: string | URL
 /** Language of the text track */
     "srclang"?: string
   }
@@ -1559,11 +1559,11 @@ export type GeneratedHtmlElementAttributes = {
 /** Encourage the user agent to display video content within the element's playback area */
     "playsinline"?: boolean
 /** Poster frame to show prior to video playback */
-    "poster"?: string
+    "poster"?: string | URL
 /** Hints how much buffering the media resource will likely need */
     "preload"?: "" | "none" | "metadata" | "auto" | (string & {})
 /** Address of the resource */
-    "src"?: string
+    "src"?: string | URL
 /** Horizontal dimension */
     "width"?: number | string
   }
@@ -4702,7 +4702,7 @@ export type GeneratedGlobalEventHandlers = {
   "ontransitionstart"?: (event: TransitionEvent) => unknown
   /** @see https://w3c.github.io/uievents/#unload */
   "onunload"?: (event: Event) => unknown
-  /** @see https://w3c.github.io/pointerevents/#dfn-wheel */
+  /** @see https://w3c.github.io/mediacapture-surface-control/#subroutine-forward-wheel-event */
   "onwheel"?: (event: WheelEvent) => unknown
 }
 
