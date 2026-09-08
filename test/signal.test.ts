@@ -152,3 +152,138 @@ test("derived computes derived values lazily tracked but eagerly updated", () =>
 test("memo is an alias of derived", () => {
   assert.equal(memo, derived)
 })
+
+test("effect that modifies the same signal does not cause infinite loop", () => {
+  const count = new Signal(0)
+  let runs = 0
+  const dispose = effect(() => {
+    runs++
+    if(count.value < 3) {
+      count.value = count.value + 1
+    }
+  })
+  // The effect should run a finite number of times (initial + 3 updates)
+  assert.equal(runs, 4)
+  assert.equal(count.value, 3)
+  dispose()
+})
+
+test("subscriber can unsubscribe itself during notification without breaking other subscribers", () => {
+  const signal = new Signal(1)
+  const calls: Array<string> = []
+  let disposeA: (() => void) | undefined
+  
+  disposeA = effect(() => {
+    void signal.value
+    calls.push("a")
+    // Unsubscribe on second run
+    if(signal.value > 1 && disposeA) {
+      disposeA()
+    }
+  })
+  
+  const disposeB = effect(() => {
+    void signal.value
+    calls.push("b")
+  })
+  
+  signal.value = 2
+  signal.value = 3
+  
+  disposeB()
+  
+  // Effect A should have run 3 times (initial + 2 changes before unsubscribing on second change)
+  // Effect B should have run 3 times (initial + 2 changes)
+  assert.deepEqual(calls, ["a", "b", "a", "b", "b"])
+})
+
+test("batch with nested effects modifying signals works correctly", () => {
+  const a = new Signal(1)
+  const b = new Signal(10)
+  const results: Array<[number, number]> = []
+  
+  const dispose = effect(() => {
+    results.push([a.value, b.value])
+  })
+  
+  batch(() => {
+    a.value = 2
+    b.value = 20
+    a.value = 3
+  })
+  
+  dispose()
+  
+  // Should only have initial run + one batched update
+  assert.equal(results.length, 2)
+  assert.deepEqual(results[1], [3, 20])
+})
+
+test("derived signal updating another signal in batch context", () => {
+  const source = new Signal(1)
+  const doubled = derived(() => source.value * 2)
+  const results: Array<number> = []
+  
+  const dispose = effect(() => {
+    results.push(doubled.value)
+  })
+  
+  batch(() => {
+    source.value = 2
+    source.value = 3
+  })
+  
+  dispose()
+  
+  // Initial + one batched update
+  assert.equal(results.length, 2)
+  assert.deepEqual(results, [2, 6])
+})
+
+test("signal modification during subscriber notification does not skip subscribers", () => {
+  const signal = new Signal(0)
+  const log: Array<string> = []
+  
+  // Subscriber A modifies the signal when notified
+  const disposeA = effect(() => {
+    log.push(`a:${signal.value}`)
+  })
+  
+  // Subscriber B also listens
+  const disposeB = effect(() => {
+    log.push(`b:${signal.value}`)
+  })
+  
+  signal.value = 1
+  
+  disposeA()
+  disposeB()
+  
+  // Both subscribers should be notified
+  assert.ok(log.includes("a:1"))
+  assert.ok(log.includes("b:1"))
+})
+
+test("nested batch does not prematurely flush subscribers", () => {
+  const a = new Signal(1)
+  const b = new Signal(10)
+  let runs = 0
+  
+  const dispose = effect(() => {
+    void a.value
+    void b.value
+    runs++
+  })
+  
+  batch(() => {
+    a.value = 2
+    batch(() => {
+      b.value = 20
+    })
+  })
+  
+  dispose()
+  
+  // Should only have initial + one final flush
+  assert.equal(runs, 2)
+})
