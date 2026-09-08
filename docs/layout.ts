@@ -77,16 +77,10 @@ const documentHtml = (
   )}`
 }
 
-/** The SPA shell: layout only, content arrives through chunks. */
-export const renderShell = (indexPage: { title: string, headings: string[] }) =>
-  documentHtml({
-    title: indexPage.title,
-    headings: indexPage.headings,
-    contentHtml: "",
-    activeSlug: "index",
-  })
-
-/** A full standalone document (direct loads, no-JS visitors). */
+/**
+ * Full HTML document for a page. Content is always inlined so no-JS browsers
+ * can read the docs; the client module only takes over for SPA navigations.
+ */
 export const renderDocument = (page: { title: string, headings: string[], contentHtml: string, slug: string }) =>
   documentHtml({
     title: page.title,

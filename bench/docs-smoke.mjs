@@ -1,5 +1,5 @@
-// happy-dom smoke test for the docs SPA: shell boot, chunk navigation with
-// hover-prefetch wiring, playground execution, title/toc updates.
+// happy-dom smoke test for the docs SPA: pre-rendered pages (no-JS readable),
+// chunk navigation with hover-prefetch, playground execution, title/toc updates.
 import { Window } from "happy-dom"
 import { readFile } from "node:fs/promises"
 
@@ -12,7 +12,7 @@ for(const key of ["window", "document", "Node", "Element", "HTMLElement", "SVGEl
 const fetchedPaths = []
 globalThis.fetch = async (input) => {
   const url = new URL(String(input), "http://localhost:4173")
-  const path = url.pathname.replace(/^\//, "")
+  let path = url.pathname.replace(/^\//, "")
   fetchedPaths.push(path)
   if(path === "" || path.endsWith(".html") || path === "client.js" || path === "styles.css" || path.startsWith("ruri/")) {
     if(path === "") path = "index.html"
@@ -39,47 +39,69 @@ const check = (name, ok) => {
 }
 
 const shellHtml = await readFile(new URL("index.html", DOCS_DIST), "utf8")
-check("shell ships without inlined content", /id="content"><\/div>/.test(shellHtml))
+check(
+  "index is fully pre-rendered (no-JS readable)",
+  /id="content">/.test(shellHtml)
+    && !/id="content"><\/div>/.test(shellHtml)
+    && /documentation site|Introduction|ruri/i.test(shellHtml),
+)
+
+const chunkFetches = () => fetchedPaths.filter((path) => path.startsWith("chunks/"))
+check(
+  "boot does not fetch page chunks when content is inlined",
+  chunkFetches().length === 0,
+)
+
+const contentAtBoot = document.getElementById("content")?.textContent ?? ""
+check(
+  "inlined index content is present without navigation",
+  contentAtBoot.length > 20,
+)
 
 const clickNav = async (slug) => {
   const link = [...document.querySelectorAll("[data-nav]")].find((a) => a.dataset.nav === slug)
+  if(!link) {
+    throw new Error(`nav link missing: ${slug}`)
+  }
   link.dispatchEvent(new window.MouseEvent("click", { bubbles: true, cancelable: true }))
   await new Promise((resolve) => setTimeout(resolve, 100))
 }
 
-await clickNav("index")
-const rows = []
-rows.push(["index chunk auto-loaded on boot", document.getElementById("content").textContent.includes("documentation site")])
-const indexPlayground = document.querySelector(".playground")
-
-const chunkFetches = () => fetchedPaths.filter((path) => path.startsWith("chunks/"))
-rows.push(["only the active page chunk loads at boot", chunkFetches().every((path) => path === "chunks/index.json")])
-
 await clickNav("getting-started")
-rows.push(["getting-started playground wired", document.querySelector(".playground")?.dataset.ready === "true"])
+check(
+  "getting-started playground wired after SPA nav",
+  document.querySelector(".playground")?.dataset.ready === "true",
+)
 
 const stylingLink = [...document.querySelectorAll("[data-nav]")].find((a) => a.dataset.nav === "styling")
 stylingLink.dispatchEvent(new window.Event("pointerenter", { bubbles: true }))
 await new Promise((resolve) => setTimeout(resolve, 50))
-rows.push(["hover prefetches only the hovered page", chunkFetches().filter((path) => path.includes("styling")).length === 1])
+check(
+  "hover prefetches only the hovered page",
+  chunkFetches().filter((path) => path.includes("styling")).length === 1,
+)
 stylingLink.dispatchEvent(new window.MouseEvent("click", { bubbles: true, cancelable: true }))
 await new Promise((resolve) => setTimeout(resolve, 100))
-rows.push(["prefetched navigation swaps content", document.getElementById("content").textContent.includes("css()")])
+check(
+  "prefetched navigation swaps content",
+  document.getElementById("content").textContent.includes("css()"),
+)
 
 await clickNav("reactivity")
-rows.push(["chunk navigation swapped content", document.getElementById("content").textContent.includes("Live example")])
-rows.push(["title updated from chunk", document.title === "Reactivity · ruri"])
-rows.push(["toc rebuilt from chunk", document.getElementById("toc").textContent.includes("Signal")])
-rows.push(["active nav follows page", [...document.querySelectorAll("[data-nav]")].find((a) => a.dataset.nav === "reactivity").classList.contains("active")])
-rows.push(["playground on navigated page", [...document.querySelectorAll(".playground")].length >= 1])
+check("chunk navigation swapped content", document.getElementById("content").textContent.includes("Live example"))
+check("title updated from chunk", document.title === "Reactivity · ruri")
+check("toc rebuilt from chunk", document.getElementById("toc").textContent.includes("Signal"))
+check(
+  "active nav follows page",
+  [...document.querySelectorAll("[data-nav]")].find((a) => a.dataset.nav === "reactivity").classList.contains("active"),
+)
+check("playground on navigated page", [...document.querySelectorAll(".playground")].length >= 1)
 
-// back-navigation returns to the previously patched index rows
 await clickNav("index")
-rows.push(["returning home keeps adopted playground", document.querySelector(".playground") === indexPlayground])
-
-for(const [name, ok] of rows) {
-  check(name, ok)
-}
+check(
+  "SPA return to index restores home content",
+  (document.getElementById("content")?.textContent ?? "").length > 20,
+)
 
 for(const [name, ok] of results) {
   if(!ok) {

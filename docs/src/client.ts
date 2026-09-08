@@ -186,7 +186,8 @@ export const loadPlaygrounds = (root: ParentNode = document) => {
 annotatePageLinks(document)
 loadPlaygrounds(document)
 
-// The shell ships with the index page inlined; anything else is fetched.
+// Full pages are pre-rendered (works without JS). Only fetch when the slot is
+// empty (e.g. a partial shell) so SPA navigations still work.
 if(document.getElementById(CONTENT_ID)?.childElementCount === 0) {
   void navigate(slugFromUrl(location.href), { push: false })
 }

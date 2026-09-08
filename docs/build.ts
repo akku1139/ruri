@@ -4,7 +4,7 @@ import { copyFile, cp, mkdir, readdir, readFile, writeFile } from "node:fs/promi
 import { stripTypeScriptTypes } from "node:module"
 import { renderToString } from "../src/server/index.ts"
 import { highlight } from "./highlight.ts"
-import { renderDocument, renderShell } from "./layout.ts"
+import { renderDocument } from "./layout.ts"
 import { renderMarkdown } from "./markdown.ts"
 import type { PageDataJson } from "./types.ts"
 
@@ -32,10 +32,7 @@ await mkdir(new URL("./chunks/", OUT_DIR), { recursive: true })
 for(const page of pages) {
   await writeFile(new URL(`chunks/${page.slug}.json`, OUT_DIR), JSON.stringify(page))
   const file = page.slug === "index" ? "index.html" : `${page.slug}.html`
-  await writeFile(new URL(file, OUT_DIR),
-      page.slug === "index"
-          ? renderShell({ title: page.title, headings: page.headings })
-          : renderDocument(page))
+  await writeFile(new URL(file, OUT_DIR), renderDocument(page))
   console.log("built", file, "+ chunk")
 }
 

@@ -2,7 +2,7 @@
 // every request, so editing docs/src is immediately visible.
 import { readFile } from "node:fs/promises"
 import { createApp, renderToString } from "../src/server/index.ts"
-import { renderDocument, renderShell } from "./layout.ts"
+import { renderDocument } from "./layout.ts"
 import { highlight } from "./highlight.ts"
 import { renderMarkdown } from "./markdown.ts"
 
@@ -47,7 +47,12 @@ app.get("/chunks/:slug", async (context) => {
   }
 })
 
-app.get("/", async () => renderShell(await readPage("index")))
+app.get("/", async () => {
+  const page = await readPage("index")
+  return new Response(renderDocument(page), {
+    headers: { "content-type": "text/html; charset=utf-8" },
+  })
+})
 
 app.get("/:slug", async (context) => {
   if (!context.params.slug)
