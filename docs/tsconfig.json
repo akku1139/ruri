@@ -7,10 +7,6 @@
     "skipLibCheck": true,
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "types": ["node"],
-    "baseUrl": ".",
-    "paths": {
-      "shiki": ["./node_modules/shiki"]
-    }
   },
   "include": ["./**/*.ts", "./src/**/*.ts"],
   "exclude": ["node_modules", "dist"]
