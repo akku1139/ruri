@@ -1,14 +1,40 @@
-/node_modules
-/dist
+```
+# Compiled and build artifacts
+*.o
+*.obj
+*.out
+build/
+dist/
 
-/.cache
+# Dependencies
 node_modules/
+.pnp/
+.pnp.js
 
-# docs build output
-docs/dist/
+# Logs and temp files
+*.log
+*.tmp
+*.swp
 
-# bench output (archived to the benchmark issue instead)
-bench-results.md
-bench/repro-*.mjs
-bench/probe-*.mjs
-_clsprobe.ts
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+*.env.*
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# TypeScript/JavaScript specific
+*.tsbuildinfo
+.next/
+.nuxt/
+public/dist/
+```
