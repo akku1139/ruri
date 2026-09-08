@@ -46,6 +46,7 @@
     "@webref/elements": "^2.7.1",
     "@webref/events": "^1.24.2",
     "happy-dom": "^20.11.6",
+    "tsx": "^4.23.13",
     "typescript": "^7.0.2"
   }
 }

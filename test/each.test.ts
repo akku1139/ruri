@@ -168,3 +168,95 @@ test("row updates patch in place when safe and swap when bound", () => {
   assert.notEqual(elementChildren(asShim(buttonList))[0], boundRow,
       "rows containing event listeners are swapped, not patched")
 })
+
+test("updating one item re-renders only that row", () => {
+  const renderCounts = new Map<number, number>()
+  const items = new Signal<readonly Todo[]>([
+    { id: 1, text: "one" },
+    { id: 2, text: "two" },
+    { id: 3, text: "three" },
+  ])
+
+  const list = tags.ul({}, each(items, (todo: Todo) => {
+    const count = renderCounts.get(todo.id) ?? 0
+    renderCounts.set(todo.id, count + 1)
+    return tags.li({ "data-id": String(todo.id) }, todo.text)
+  }, { key: (todo: Todo) => todo.id }))
+
+  const container = document.createElement("div")
+  container.append(list)
+
+  assert.deepEqual(renderCounts.get(1), 1)
+  assert.deepEqual(renderCounts.get(2), 1)
+  assert.deepEqual(renderCounts.get(3), 1)
+
+  items.value = [
+    { id: 1, text: "one" },
+    { id: 2, text: "TWO!" },
+    { id: 3, text: "three" },
+  ]
+
+  assert.deepEqual(renderCounts.get(1), 1, "item 1 should not re-render")
+  assert.deepEqual(renderCounts.get(2), 2, "item 2 should re-render once")
+  assert.deepEqual(renderCounts.get(3), 1, "item 3 should not re-render")
+})
+
+test("reordering items does not re-render rows", () => {
+  const first = { id: 1, text: "one" }
+  const second = { id: 2, text: "two" }
+  const third = { id: 3, text: "three" }
+  const renderCounts = new Map<number, number>()
+
+  const items = new Signal<readonly Todo[]>([first, second, third])
+
+  const list = tags.ul({}, each(items, (todo: Todo) => {
+    const count = renderCounts.get(todo.id) ?? 0
+    renderCounts.set(todo.id, count + 1)
+    return tags.li({ "data-id": String(todo.id) }, todo.text)
+  }, { key: (todo: Todo) => todo.id }))
+
+  const container = document.createElement("div")
+  container.append(list)
+
+  const initialCounts = new Map(renderCounts)
+  items.value = [third, second, first]
+
+  assert.deepEqual(renderCounts.get(1), initialCounts.get(1), "item 1 should not re-render on reorder")
+  assert.deepEqual(renderCounts.get(2), initialCounts.get(2), "item 2 should not re-render on reorder")
+  assert.deepEqual(renderCounts.get(3), initialCounts.get(3), "item 3 should not re-render on reorder")
+  assert.deepEqual(rowIds(asShim(list)), ["3", "2", "1"])
+})
+
+test("large list: updating one item affects only that row", () => {
+  const SIZE = 100
+  const renderCounts = new Map<number, number>()
+  const items = new Signal<readonly Todo[]>(
+    Array.from({ length: SIZE }, (_, i) => ({ id: i + 1, text: `item ${i + 1}` }))
+  )
+
+  const list = tags.ul({}, each(items, (todo: Todo) => {
+    const count = renderCounts.get(todo.id) ?? 0
+    renderCounts.set(todo.id, count + 1)
+    return tags.li({ "data-id": String(todo.id) }, todo.text)
+  }, { key: (todo: Todo) => todo.id }))
+
+  const container = document.createElement("div")
+  container.append(list)
+
+  const targetId = 50
+  items.value = items.peek().map((item) =>
+    item.id === targetId ? { ...item, text: "UPDATED!" } : item
+  )
+
+  let rerenderedCount = 0
+  for(const [id, count] of renderCounts.entries()) {
+    if(id === targetId) {
+      assert.equal(count, 2, `target item ${id} should re-render once`)
+      rerenderedCount++
+    } else {
+      assert.equal(count, 1, `non-target item ${id} should not re-render`)
+    }
+  }
+
+  assert.equal(rerenderedCount, 1, "only one item should have re-rendered")
+})
