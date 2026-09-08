@@ -380,6 +380,12 @@ const ATTR_TYPE_OVERRIDES = {
   "class": "string | Array<string>",
   "style": "string | Record<string, string | number>",
   "tabindex": "number | string",
+  // link/a/area/form: rel is a space-separated token list in the DOM; accept a
+  // single known token, an array of tokens, or an open string.
+  "link.rel": `("alternate" | "author" | "bookmark" | "canonical" | "dns-prefetch" | "expect" | "external" | "help" | "icon" | "license" | "manifest" | "modulepreload" | "next" | "nofollow" | "noopener" | "noreferrer" | "opener" | "pingback" | "preconnect" | "prefetch" | "preload" | "prev" | "privacy-policy" | "search" | "stylesheet" | "tag" | "terms-of-service") | Array<"alternate" | "author" | "bookmark" | "canonical" | "dns-prefetch" | "expect" | "external" | "help" | "icon" | "license" | "manifest" | "modulepreload" | "next" | "nofollow" | "noopener" | "noreferrer" | "opener" | "pingback" | "preconnect" | "prefetch" | "preload" | "prev" | "privacy-policy" | "search" | "stylesheet" | "tag" | "terms-of-service"> | (string & {})`,
+  "a.rel": `("alternate" | "author" | "bookmark" | "canonical" | "dns-prefetch" | "expect" | "external" | "help" | "icon" | "license" | "manifest" | "modulepreload" | "next" | "nofollow" | "noopener" | "noreferrer" | "opener" | "pingback" | "preconnect" | "prefetch" | "preload" | "prev" | "privacy-policy" | "search" | "stylesheet" | "tag" | "terms-of-service") | Array<"alternate" | "author" | "bookmark" | "canonical" | "dns-prefetch" | "expect" | "external" | "help" | "icon" | "license" | "manifest" | "modulepreload" | "next" | "nofollow" | "noopener" | "noreferrer" | "opener" | "pingback" | "preconnect" | "prefetch" | "preload" | "prev" | "privacy-policy" | "search" | "stylesheet" | "tag" | "terms-of-service"> | (string & {})`,
+  "area.rel": `("alternate" | "author" | "bookmark" | "canonical" | "dns-prefetch" | "expect" | "external" | "help" | "icon" | "license" | "manifest" | "modulepreload" | "next" | "nofollow" | "noopener" | "noreferrer" | "opener" | "pingback" | "preconnect" | "prefetch" | "preload" | "prev" | "privacy-policy" | "search" | "stylesheet" | "tag" | "terms-of-service") | Array<"alternate" | "author" | "bookmark" | "canonical" | "dns-prefetch" | "expect" | "external" | "help" | "icon" | "license" | "manifest" | "modulepreload" | "next" | "nofollow" | "noopener" | "noreferrer" | "opener" | "pingback" | "preconnect" | "prefetch" | "preload" | "prev" | "privacy-policy" | "search" | "stylesheet" | "tag" | "terms-of-service"> | (string & {})`,
+  "form.rel": `("alternate" | "author" | "bookmark" | "canonical" | "dns-prefetch" | "expect" | "external" | "help" | "icon" | "license" | "manifest" | "modulepreload" | "next" | "nofollow" | "noopener" | "noreferrer" | "opener" | "pingback" | "preconnect" | "prefetch" | "preload" | "prev" | "privacy-policy" | "search" | "stylesheet" | "tag" | "terms-of-service") | Array<"alternate" | "author" | "bookmark" | "canonical" | "dns-prefetch" | "expect" | "external" | "help" | "icon" | "license" | "manifest" | "modulepreload" | "next" | "nofollow" | "noopener" | "noreferrer" | "opener" | "pingback" | "preconnect" | "prefetch" | "preload" | "prev" | "privacy-policy" | "search" | "stylesheet" | "tag" | "terms-of-service"> | (string & {})`,
   "input.type": INPUT_TYPES.map((t) => JSON.stringify(t)).join(" | ") + " | (string & {})",
   "button.type": '"submit" | "reset" | "button" | (string & {})',
   "script.type": '"module" | "importmap" | "speculationrules" | (string & {})',
@@ -570,6 +576,33 @@ const emitMathmlSections = (definitions, mathmlElementNames, hrefs) => {
         const merged = new Map(definitions.get("__global__") ?? [])
         for(const [attributeName, type] of definitions.get(elementName) ?? []) {
           merged.set(attributeName, type)
+        }
+        // Align with HTML boolean / curated types (MathML Core inherits HTML global attrs).
+        for(const [key, type] of Object.entries(ATTR_TYPE_OVERRIDES)) {
+          if(key.includes(".")) {
+            const [el, attr] = key.split(".")
+            if(el === elementName && merged.has(attr)) {
+              merged.set(attr, type)
+            }
+            continue
+          }
+          if(merged.has(key)) {
+            merged.set(key, type)
+          }
+        }
+        for(const name of BOOLEAN_JSX_ATTRIBUTES) {
+          if(merged.has(name) && (merged.get(name) === "string" || String(merged.get(name)).startsWith("string"))) {
+            merged.set(name, "boolean")
+          }
+        }
+        // Numbers for known MathML numeric globals when still string.
+        for(const name of NUMERIC_MATHML_ATTRIBUTES) {
+          if(merged.has(name) && merged.get(name) === "string") {
+            merged.set(name, "number | string")
+          }
+        }
+        if(merged.has("tabindex") && merged.get("tabindex") === "string") {
+          merged.set("tabindex", "number | string")
         }
         const doc = jsdoc(hrefs.has(elementName) ? [`@see ${hrefs.get(elementName)}`] : [])
         if(merged.size === 0) {

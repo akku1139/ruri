@@ -332,7 +332,7 @@ export type GeneratedHtmlElementAttributes = {
 /** Referrer policy for fetches initiated by the element */
     "referrerpolicy"?: "no-referrer" | "no-referrer-when-downgrade" | "origin" | "origin-when-cross-origin" | "same-origin" | "strict-origin" | "strict-origin-when-cross-origin" | "unsafe-url" | (string & {})
 /** Relationship between the location in the document containing the hyperlink and the destination resource */
-    "rel"?: string
+    "rel"?: ("alternate" | "author" | "bookmark" | "canonical" | "dns-prefetch" | "expect" | "external" | "help" | "icon" | "license" | "manifest" | "modulepreload" | "next" | "nofollow" | "noopener" | "noreferrer" | "opener" | "pingback" | "preconnect" | "prefetch" | "preload" | "prev" | "privacy-policy" | "search" | "stylesheet" | "tag" | "terms-of-service") | Array<"alternate" | "author" | "bookmark" | "canonical" | "dns-prefetch" | "expect" | "external" | "help" | "icon" | "license" | "manifest" | "modulepreload" | "next" | "nofollow" | "noopener" | "noreferrer" | "opener" | "pingback" | "preconnect" | "prefetch" | "preload" | "prev" | "privacy-policy" | "search" | "stylesheet" | "tag" | "terms-of-service"> | (string & {})
 /** Navigable for hyperlink navigation */
     "target"?: "_blank" | "_self" | "_parent" | "_top" | (string & {})
 /** Hint for the type of the referenced resource */
@@ -371,7 +371,7 @@ export type GeneratedHtmlElementAttributes = {
 /** Referrer policy for fetches initiated by the element */
     "referrerpolicy"?: "no-referrer" | "no-referrer-when-downgrade" | "origin" | "origin-when-cross-origin" | "same-origin" | "strict-origin" | "strict-origin-when-cross-origin" | "unsafe-url" | (string & {})
 /** Relationship between the location in the document containing the hyperlink and the destination resource */
-    "rel"?: string
+    "rel"?: ("alternate" | "author" | "bookmark" | "canonical" | "dns-prefetch" | "expect" | "external" | "help" | "icon" | "license" | "manifest" | "modulepreload" | "next" | "nofollow" | "noopener" | "noreferrer" | "opener" | "pingback" | "preconnect" | "prefetch" | "preload" | "prev" | "privacy-policy" | "search" | "stylesheet" | "tag" | "terms-of-service") | Array<"alternate" | "author" | "bookmark" | "canonical" | "dns-prefetch" | "expect" | "external" | "help" | "icon" | "license" | "manifest" | "modulepreload" | "next" | "nofollow" | "noopener" | "noreferrer" | "opener" | "pingback" | "preconnect" | "prefetch" | "preload" | "prev" | "privacy-policy" | "search" | "stylesheet" | "tag" | "terms-of-service"> | (string & {})
 /** The kind of shape to be created in an image map */
     "shape"?: "circle" | "default" | "poly" | "rect" | (string & {})
 /** Navigable for hyperlink navigation */
@@ -708,7 +708,7 @@ export type GeneratedHtmlElementAttributes = {
 /** Navigable for hyperlink navigation */
     "target"?: "_blank" | "_self" | "_parent" | "_top" | (string & {})
 /** Relationship between the location in the document containing the hyperlink and the destination resource */
-    "rel"?: string
+    "rel"?: ("alternate" | "author" | "bookmark" | "canonical" | "dns-prefetch" | "expect" | "external" | "help" | "icon" | "license" | "manifest" | "modulepreload" | "next" | "nofollow" | "noopener" | "noreferrer" | "opener" | "pingback" | "preconnect" | "prefetch" | "preload" | "prev" | "privacy-policy" | "search" | "stylesheet" | "tag" | "terms-of-service") | Array<"alternate" | "author" | "bookmark" | "canonical" | "dns-prefetch" | "expect" | "external" | "help" | "icon" | "license" | "manifest" | "modulepreload" | "next" | "nofollow" | "noopener" | "noreferrer" | "opener" | "pingback" | "preconnect" | "prefetch" | "preload" | "prev" | "privacy-policy" | "search" | "stylesheet" | "tag" | "terms-of-service"> | (string & {})
   }
 /**
  * These elements represent headings for their sections.
@@ -1002,7 +1002,7 @@ export type GeneratedHtmlElementAttributes = {
 /** Referrer policy for fetches initiated by the element */
     "referrerpolicy"?: "no-referrer" | "no-referrer-when-downgrade" | "origin" | "origin-when-cross-origin" | "same-origin" | "strict-origin" | "strict-origin-when-cross-origin" | "unsafe-url" | (string & {})
 /** Relationship between the location in the document containing the hyperlink and the destination resource */
-    "rel"?: string
+    "rel"?: ("alternate" | "author" | "bookmark" | "canonical" | "dns-prefetch" | "expect" | "external" | "help" | "icon" | "license" | "manifest" | "modulepreload" | "next" | "nofollow" | "noopener" | "noreferrer" | "opener" | "pingback" | "preconnect" | "prefetch" | "preload" | "prev" | "privacy-policy" | "search" | "stylesheet" | "tag" | "terms-of-service") | Array<"alternate" | "author" | "bookmark" | "canonical" | "dns-prefetch" | "expect" | "external" | "help" | "icon" | "license" | "manifest" | "modulepreload" | "next" | "nofollow" | "noopener" | "noreferrer" | "opener" | "pingback" | "preconnect" | "prefetch" | "preload" | "prev" | "privacy-policy" | "search" | "stylesheet" | "tag" | "terms-of-service"> | (string & {})
 /** Sizes of the icons (for rel =" icon ") */
     "sizes"?: string
 /** Advisory information for the element */
@@ -3991,8 +3991,8 @@ export type GeneratedMathMLElementAttributes = {
  * @see https://w3c.github.io/mathml-core/#dfn-a
  */
   "a"?: {
-    "autofocus"?: string
-    "class"?: string
+    "autofocus"?: boolean
+    "class"?: string | Array<string>
     "dir"?: string
     "displaystyle"?: string
     "id"?: string
@@ -4001,13 +4001,13 @@ export type GeneratedMathMLElementAttributes = {
     "mathsize"?: string
     "nonce"?: string
     "scriptlevel"?: number | string
-    "style"?: string
-    "tabindex"?: string
+    "style"?: string | Record<string, string | number>
+    "tabindex"?: number | string
     "href"?: string
-    "target"?: string
+    "target"?: "_blank" | "_self" | "_parent" | "_top" | (string & {})
     "download"?: string
     "ping"?: string
-    "rel"?: string
+    "rel"?: ("alternate" | "author" | "bookmark" | "canonical" | "dns-prefetch" | "expect" | "external" | "help" | "icon" | "license" | "manifest" | "modulepreload" | "next" | "nofollow" | "noopener" | "noreferrer" | "opener" | "pingback" | "preconnect" | "prefetch" | "preload" | "prev" | "privacy-policy" | "search" | "stylesheet" | "tag" | "terms-of-service") | Array<"alternate" | "author" | "bookmark" | "canonical" | "dns-prefetch" | "expect" | "external" | "help" | "icon" | "license" | "manifest" | "modulepreload" | "next" | "nofollow" | "noopener" | "noreferrer" | "opener" | "pingback" | "preconnect" | "prefetch" | "preload" | "prev" | "privacy-policy" | "search" | "stylesheet" | "tag" | "terms-of-service"> | (string & {})
     "hreflang"?: string
     "type"?: string
     "referrerpolicy"?: string
@@ -4016,8 +4016,8 @@ export type GeneratedMathMLElementAttributes = {
  * @see https://w3c.github.io/mathml-core/#dfn-annotation
  */
   "annotation"?: {
-    "autofocus"?: string
-    "class"?: string
+    "autofocus"?: boolean
+    "class"?: string | Array<string>
     "dir"?: string
     "displaystyle"?: string
     "id"?: string
@@ -4026,16 +4026,16 @@ export type GeneratedMathMLElementAttributes = {
     "mathsize"?: string
     "nonce"?: string
     "scriptlevel"?: number | string
-    "style"?: string
-    "tabindex"?: string
+    "style"?: string | Record<string, string | number>
+    "tabindex"?: number | string
     "encoding"?: string
   }
 /**
  * @see https://w3c.github.io/mathml-core/#dfn-annotation-xml
  */
   "annotation-xml"?: {
-    "autofocus"?: string
-    "class"?: string
+    "autofocus"?: boolean
+    "class"?: string | Array<string>
     "dir"?: string
     "displaystyle"?: string
     "id"?: string
@@ -4044,16 +4044,16 @@ export type GeneratedMathMLElementAttributes = {
     "mathsize"?: string
     "nonce"?: string
     "scriptlevel"?: number | string
-    "style"?: string
-    "tabindex"?: string
+    "style"?: string | Record<string, string | number>
+    "tabindex"?: number | string
     "encoding"?: string
   }
 /**
  * @see https://w3c.github.io/mathml-core/#dfn-maction
  */
   "maction"?: {
-    "autofocus"?: string
-    "class"?: string
+    "autofocus"?: boolean
+    "class"?: string | Array<string>
     "dir"?: string
     "displaystyle"?: string
     "id"?: string
@@ -4062,8 +4062,8 @@ export type GeneratedMathMLElementAttributes = {
     "mathsize"?: string
     "nonce"?: string
     "scriptlevel"?: number | string
-    "style"?: string
-    "tabindex"?: string
+    "style"?: string | Record<string, string | number>
+    "tabindex"?: number | string
     "actiontype"?: string
     "selection"?: string
   }
@@ -4071,8 +4071,8 @@ export type GeneratedMathMLElementAttributes = {
  * @see https://w3c.github.io/mathml-core/#dfn-math
  */
   "math"?: {
-    "autofocus"?: string
-    "class"?: string
+    "autofocus"?: boolean
+    "class"?: string | Array<string>
     "dir"?: string
     "displaystyle"?: string
     "id"?: string
@@ -4081,8 +4081,8 @@ export type GeneratedMathMLElementAttributes = {
     "mathsize"?: string
     "nonce"?: string
     "scriptlevel"?: number | string
-    "style"?: string
-    "tabindex"?: string
+    "style"?: string | Record<string, string | number>
+    "tabindex"?: number | string
     "display"?: "block" | "inline" | (string & {})
     "alttext"?: string
   }
@@ -4090,8 +4090,8 @@ export type GeneratedMathMLElementAttributes = {
  * @see https://w3c.github.io/mathml-core/#dfn-merror
  */
   "merror"?: {
-    "autofocus"?: string
-    "class"?: string
+    "autofocus"?: boolean
+    "class"?: string | Array<string>
     "dir"?: string
     "displaystyle"?: string
     "id"?: string
@@ -4100,15 +4100,15 @@ export type GeneratedMathMLElementAttributes = {
     "mathsize"?: string
     "nonce"?: string
     "scriptlevel"?: number | string
-    "style"?: string
-    "tabindex"?: string
+    "style"?: string | Record<string, string | number>
+    "tabindex"?: number | string
   }
 /**
  * @see https://w3c.github.io/mathml-core/#dfn-mfrac
  */
   "mfrac"?: {
-    "autofocus"?: string
-    "class"?: string
+    "autofocus"?: boolean
+    "class"?: string | Array<string>
     "dir"?: string
     "displaystyle"?: string
     "id"?: string
@@ -4117,15 +4117,15 @@ export type GeneratedMathMLElementAttributes = {
     "mathsize"?: string
     "nonce"?: string
     "scriptlevel"?: number | string
-    "style"?: string
-    "tabindex"?: string
+    "style"?: string | Record<string, string | number>
+    "tabindex"?: number | string
   }
 /**
  * @see https://w3c.github.io/mathml-core/#dfn-mi
  */
   "mi"?: {
-    "autofocus"?: string
-    "class"?: string
+    "autofocus"?: boolean
+    "class"?: string | Array<string>
     "dir"?: string
     "displaystyle"?: string
     "id"?: string
@@ -4134,15 +4134,15 @@ export type GeneratedMathMLElementAttributes = {
     "mathsize"?: string
     "nonce"?: string
     "scriptlevel"?: number | string
-    "style"?: string
-    "tabindex"?: string
+    "style"?: string | Record<string, string | number>
+    "tabindex"?: number | string
   }
 /**
  * @see https://w3c.github.io/mathml-core/#dfn-mmultiscripts
  */
   "mmultiscripts"?: {
-    "autofocus"?: string
-    "class"?: string
+    "autofocus"?: boolean
+    "class"?: string | Array<string>
     "dir"?: string
     "displaystyle"?: string
     "id"?: string
@@ -4151,15 +4151,15 @@ export type GeneratedMathMLElementAttributes = {
     "mathsize"?: string
     "nonce"?: string
     "scriptlevel"?: number | string
-    "style"?: string
-    "tabindex"?: string
+    "style"?: string | Record<string, string | number>
+    "tabindex"?: number | string
   }
 /**
  * @see https://w3c.github.io/mathml-core/#dfn-mn
  */
   "mn"?: {
-    "autofocus"?: string
-    "class"?: string
+    "autofocus"?: boolean
+    "class"?: string | Array<string>
     "dir"?: string
     "displaystyle"?: string
     "id"?: string
@@ -4168,15 +4168,15 @@ export type GeneratedMathMLElementAttributes = {
     "mathsize"?: string
     "nonce"?: string
     "scriptlevel"?: number | string
-    "style"?: string
-    "tabindex"?: string
+    "style"?: string | Record<string, string | number>
+    "tabindex"?: number | string
   }
 /**
  * @see https://w3c.github.io/mathml-core/#dfn-mo
  */
   "mo"?: {
-    "autofocus"?: string
-    "class"?: string
+    "autofocus"?: boolean
+    "class"?: string | Array<string>
     "dir"?: string
     "displaystyle"?: string
     "id"?: string
@@ -4185,8 +4185,8 @@ export type GeneratedMathMLElementAttributes = {
     "mathsize"?: string
     "nonce"?: string
     "scriptlevel"?: number | string
-    "style"?: string
-    "tabindex"?: string
+    "style"?: string | Record<string, string | number>
+    "tabindex"?: number | string
     "form"?: string
     "fence"?: string
     "separator"?: string
@@ -4203,8 +4203,8 @@ export type GeneratedMathMLElementAttributes = {
  * @see https://w3c.github.io/mathml-core/#dfn-mover
  */
   "mover"?: {
-    "autofocus"?: string
-    "class"?: string
+    "autofocus"?: boolean
+    "class"?: string | Array<string>
     "dir"?: string
     "displaystyle"?: string
     "id"?: string
@@ -4213,15 +4213,15 @@ export type GeneratedMathMLElementAttributes = {
     "mathsize"?: string
     "nonce"?: string
     "scriptlevel"?: number | string
-    "style"?: string
-    "tabindex"?: string
+    "style"?: string | Record<string, string | number>
+    "tabindex"?: number | string
   }
 /**
  * @see https://w3c.github.io/mathml-core/#dfn-mpadded
  */
   "mpadded"?: {
-    "autofocus"?: string
-    "class"?: string
+    "autofocus"?: boolean
+    "class"?: string | Array<string>
     "dir"?: string
     "displaystyle"?: string
     "id"?: string
@@ -4230,8 +4230,8 @@ export type GeneratedMathMLElementAttributes = {
     "mathsize"?: string
     "nonce"?: string
     "scriptlevel"?: number | string
-    "style"?: string
-    "tabindex"?: string
+    "style"?: string | Record<string, string | number>
+    "tabindex"?: number | string
     "width"?: number | string
     "height"?: number | string
     "depth"?: number | string
@@ -4242,8 +4242,8 @@ export type GeneratedMathMLElementAttributes = {
  * @see https://w3c.github.io/mathml-core/#dfn-mphantom
  */
   "mphantom"?: {
-    "autofocus"?: string
-    "class"?: string
+    "autofocus"?: boolean
+    "class"?: string | Array<string>
     "dir"?: string
     "displaystyle"?: string
     "id"?: string
@@ -4252,15 +4252,15 @@ export type GeneratedMathMLElementAttributes = {
     "mathsize"?: string
     "nonce"?: string
     "scriptlevel"?: number | string
-    "style"?: string
-    "tabindex"?: string
+    "style"?: string | Record<string, string | number>
+    "tabindex"?: number | string
   }
 /**
  * @see https://w3c.github.io/mathml-core/#dfn-mprescripts
  */
   "mprescripts"?: {
-    "autofocus"?: string
-    "class"?: string
+    "autofocus"?: boolean
+    "class"?: string | Array<string>
     "dir"?: string
     "displaystyle"?: string
     "id"?: string
@@ -4269,15 +4269,15 @@ export type GeneratedMathMLElementAttributes = {
     "mathsize"?: string
     "nonce"?: string
     "scriptlevel"?: number | string
-    "style"?: string
-    "tabindex"?: string
+    "style"?: string | Record<string, string | number>
+    "tabindex"?: number | string
   }
 /**
  * @see https://w3c.github.io/mathml-core/#dfn-mroot
  */
   "mroot"?: {
-    "autofocus"?: string
-    "class"?: string
+    "autofocus"?: boolean
+    "class"?: string | Array<string>
     "dir"?: string
     "displaystyle"?: string
     "id"?: string
@@ -4286,15 +4286,15 @@ export type GeneratedMathMLElementAttributes = {
     "mathsize"?: string
     "nonce"?: string
     "scriptlevel"?: number | string
-    "style"?: string
-    "tabindex"?: string
+    "style"?: string | Record<string, string | number>
+    "tabindex"?: number | string
   }
 /**
  * @see https://w3c.github.io/mathml-core/#dfn-mrow
  */
   "mrow"?: {
-    "autofocus"?: string
-    "class"?: string
+    "autofocus"?: boolean
+    "class"?: string | Array<string>
     "dir"?: string
     "displaystyle"?: string
     "id"?: string
@@ -4303,15 +4303,15 @@ export type GeneratedMathMLElementAttributes = {
     "mathsize"?: string
     "nonce"?: string
     "scriptlevel"?: number | string
-    "style"?: string
-    "tabindex"?: string
+    "style"?: string | Record<string, string | number>
+    "tabindex"?: number | string
   }
 /**
  * @see https://w3c.github.io/mathml-core/#dfn-ms
  */
   "ms"?: {
-    "autofocus"?: string
-    "class"?: string
+    "autofocus"?: boolean
+    "class"?: string | Array<string>
     "dir"?: string
     "displaystyle"?: string
     "id"?: string
@@ -4320,15 +4320,15 @@ export type GeneratedMathMLElementAttributes = {
     "mathsize"?: string
     "nonce"?: string
     "scriptlevel"?: number | string
-    "style"?: string
-    "tabindex"?: string
+    "style"?: string | Record<string, string | number>
+    "tabindex"?: number | string
   }
 /**
  * @see https://w3c.github.io/mathml-core/#dfn-mspace
  */
   "mspace"?: {
-    "autofocus"?: string
-    "class"?: string
+    "autofocus"?: boolean
+    "class"?: string | Array<string>
     "dir"?: string
     "displaystyle"?: string
     "id"?: string
@@ -4337,8 +4337,8 @@ export type GeneratedMathMLElementAttributes = {
     "mathsize"?: string
     "nonce"?: string
     "scriptlevel"?: number | string
-    "style"?: string
-    "tabindex"?: string
+    "style"?: string | Record<string, string | number>
+    "tabindex"?: number | string
     "width"?: number | string
     "height"?: number | string
     "depth"?: number | string
@@ -4347,8 +4347,8 @@ export type GeneratedMathMLElementAttributes = {
  * @see https://w3c.github.io/mathml-core/#dfn-msqrt
  */
   "msqrt"?: {
-    "autofocus"?: string
-    "class"?: string
+    "autofocus"?: boolean
+    "class"?: string | Array<string>
     "dir"?: string
     "displaystyle"?: string
     "id"?: string
@@ -4357,15 +4357,15 @@ export type GeneratedMathMLElementAttributes = {
     "mathsize"?: string
     "nonce"?: string
     "scriptlevel"?: number | string
-    "style"?: string
-    "tabindex"?: string
+    "style"?: string | Record<string, string | number>
+    "tabindex"?: number | string
   }
 /**
  * @see https://w3c.github.io/mathml-core/#dfn-mstyle
  */
   "mstyle"?: {
-    "autofocus"?: string
-    "class"?: string
+    "autofocus"?: boolean
+    "class"?: string | Array<string>
     "dir"?: string
     "displaystyle"?: string
     "id"?: string
@@ -4374,15 +4374,15 @@ export type GeneratedMathMLElementAttributes = {
     "mathsize"?: string
     "nonce"?: string
     "scriptlevel"?: number | string
-    "style"?: string
-    "tabindex"?: string
+    "style"?: string | Record<string, string | number>
+    "tabindex"?: number | string
   }
 /**
  * @see https://w3c.github.io/mathml-core/#dfn-msub
  */
   "msub"?: {
-    "autofocus"?: string
-    "class"?: string
+    "autofocus"?: boolean
+    "class"?: string | Array<string>
     "dir"?: string
     "displaystyle"?: string
     "id"?: string
@@ -4391,15 +4391,15 @@ export type GeneratedMathMLElementAttributes = {
     "mathsize"?: string
     "nonce"?: string
     "scriptlevel"?: number | string
-    "style"?: string
-    "tabindex"?: string
+    "style"?: string | Record<string, string | number>
+    "tabindex"?: number | string
   }
 /**
  * @see https://w3c.github.io/mathml-core/#dfn-msubsup
  */
   "msubsup"?: {
-    "autofocus"?: string
-    "class"?: string
+    "autofocus"?: boolean
+    "class"?: string | Array<string>
     "dir"?: string
     "displaystyle"?: string
     "id"?: string
@@ -4408,15 +4408,15 @@ export type GeneratedMathMLElementAttributes = {
     "mathsize"?: string
     "nonce"?: string
     "scriptlevel"?: number | string
-    "style"?: string
-    "tabindex"?: string
+    "style"?: string | Record<string, string | number>
+    "tabindex"?: number | string
   }
 /**
  * @see https://w3c.github.io/mathml-core/#dfn-msup
  */
   "msup"?: {
-    "autofocus"?: string
-    "class"?: string
+    "autofocus"?: boolean
+    "class"?: string | Array<string>
     "dir"?: string
     "displaystyle"?: string
     "id"?: string
@@ -4425,15 +4425,15 @@ export type GeneratedMathMLElementAttributes = {
     "mathsize"?: string
     "nonce"?: string
     "scriptlevel"?: number | string
-    "style"?: string
-    "tabindex"?: string
+    "style"?: string | Record<string, string | number>
+    "tabindex"?: number | string
   }
 /**
  * @see https://w3c.github.io/mathml-core/#dfn-mtable
  */
   "mtable"?: {
-    "autofocus"?: string
-    "class"?: string
+    "autofocus"?: boolean
+    "class"?: string | Array<string>
     "dir"?: string
     "displaystyle"?: string
     "id"?: string
@@ -4442,15 +4442,15 @@ export type GeneratedMathMLElementAttributes = {
     "mathsize"?: string
     "nonce"?: string
     "scriptlevel"?: number | string
-    "style"?: string
-    "tabindex"?: string
+    "style"?: string | Record<string, string | number>
+    "tabindex"?: number | string
   }
 /**
  * @see https://w3c.github.io/mathml-core/#dfn-mtd
  */
   "mtd"?: {
-    "autofocus"?: string
-    "class"?: string
+    "autofocus"?: boolean
+    "class"?: string | Array<string>
     "dir"?: string
     "displaystyle"?: string
     "id"?: string
@@ -4459,15 +4459,15 @@ export type GeneratedMathMLElementAttributes = {
     "mathsize"?: string
     "nonce"?: string
     "scriptlevel"?: number | string
-    "style"?: string
-    "tabindex"?: string
+    "style"?: string | Record<string, string | number>
+    "tabindex"?: number | string
   }
 /**
  * @see https://w3c.github.io/mathml-core/#dfn-mtext
  */
   "mtext"?: {
-    "autofocus"?: string
-    "class"?: string
+    "autofocus"?: boolean
+    "class"?: string | Array<string>
     "dir"?: string
     "displaystyle"?: string
     "id"?: string
@@ -4476,15 +4476,15 @@ export type GeneratedMathMLElementAttributes = {
     "mathsize"?: string
     "nonce"?: string
     "scriptlevel"?: number | string
-    "style"?: string
-    "tabindex"?: string
+    "style"?: string | Record<string, string | number>
+    "tabindex"?: number | string
   }
 /**
  * @see https://w3c.github.io/mathml-core/#dfn-mtr
  */
   "mtr"?: {
-    "autofocus"?: string
-    "class"?: string
+    "autofocus"?: boolean
+    "class"?: string | Array<string>
     "dir"?: string
     "displaystyle"?: string
     "id"?: string
@@ -4493,15 +4493,15 @@ export type GeneratedMathMLElementAttributes = {
     "mathsize"?: string
     "nonce"?: string
     "scriptlevel"?: number | string
-    "style"?: string
-    "tabindex"?: string
+    "style"?: string | Record<string, string | number>
+    "tabindex"?: number | string
   }
 /**
  * @see https://w3c.github.io/mathml-core/#dfn-munder
  */
   "munder"?: {
-    "autofocus"?: string
-    "class"?: string
+    "autofocus"?: boolean
+    "class"?: string | Array<string>
     "dir"?: string
     "displaystyle"?: string
     "id"?: string
@@ -4510,15 +4510,15 @@ export type GeneratedMathMLElementAttributes = {
     "mathsize"?: string
     "nonce"?: string
     "scriptlevel"?: number | string
-    "style"?: string
-    "tabindex"?: string
+    "style"?: string | Record<string, string | number>
+    "tabindex"?: number | string
   }
 /**
  * @see https://w3c.github.io/mathml-core/#dfn-munderover
  */
   "munderover"?: {
-    "autofocus"?: string
-    "class"?: string
+    "autofocus"?: boolean
+    "class"?: string | Array<string>
     "dir"?: string
     "displaystyle"?: string
     "id"?: string
@@ -4527,8 +4527,8 @@ export type GeneratedMathMLElementAttributes = {
     "mathsize"?: string
     "nonce"?: string
     "scriptlevel"?: number | string
-    "style"?: string
-    "tabindex"?: string
+    "style"?: string | Record<string, string | number>
+    "tabindex"?: number | string
     "accent"?: string
     "accentunder"?: string
   }
@@ -4536,8 +4536,8 @@ export type GeneratedMathMLElementAttributes = {
  * @see https://w3c.github.io/mathml-core/#dfn-semantics
  */
   "semantics"?: {
-    "autofocus"?: string
-    "class"?: string
+    "autofocus"?: boolean
+    "class"?: string | Array<string>
     "dir"?: string
     "displaystyle"?: string
     "id"?: string
@@ -4546,8 +4546,8 @@ export type GeneratedMathMLElementAttributes = {
     "mathsize"?: string
     "nonce"?: string
     "scriptlevel"?: number | string
-    "style"?: string
-    "tabindex"?: string
+    "style"?: string | Record<string, string | number>
+    "tabindex"?: number | string
   }
 }
 
