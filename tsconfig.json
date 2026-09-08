@@ -28,6 +28,7 @@
     "noImplicitOverride": true,
     //"erasableSyntaxOnly": true, // TypeScript 5.8
     "isolatedDeclarations": true,
+    "noImplicitAny": true,
 
     "skipLibCheck": false,
     "types": [
