@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 import { installDom, ShimElement } from "./dom-shim.ts"
-import { each, Signal, tags, unmount, type Signal as SignalType } from "../src/index.ts"
+import { each, Signal, tags, type Signal as SignalType, effect } from "../src/index.ts"
 
 installDom()
 
@@ -204,7 +204,7 @@ test("index signal updates do not trigger full row re-render", () => {
 /**
  * Test: Batch updates should coalesce notifications
  */
-test("batch updates coalesce into single reconciliation", () => {
+test("batch updates coalesce into single reconciliation", async () => {
   const { batch } = await import("../src/signal.ts")
   
   const items = new Signal<readonly Todo[]>([
