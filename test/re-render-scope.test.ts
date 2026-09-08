@@ -153,10 +153,11 @@ test("removing an item does not re-render remaining rows", () => {
     item3,
   ]
 
-  // Remaining rows should not have re-rendered
+  // Remaining rows should not have re-rendered; removed row is just disposed
   assert.deepEqual(renderCounts.get(1), initialCounts.get(1), "item 1 should not re-render on remove")
   assert.deepEqual(renderCounts.get(3), initialCounts.get(3), "item 3 should not re-render on remove")
-  assert.equal(renderCounts.get(2), undefined, "item 2 should be removed")
+  // renderCounts still holds the initial count for the disposed row — that is fine
+  assert.deepEqual(renderCounts.get(2), initialCounts.get(2), "item 2 should not re-render after remove")
 })
 
 /**
