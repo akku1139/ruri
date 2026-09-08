@@ -134,17 +134,68 @@ export const subscribeReconciliation = <T>(anchor: Comment, controller: EachCont
   })
 }
 
+/** True when an element has a single text child and no element children. */
+const isPlainTextElement = (node: Node): boolean => {
+  if(node.nodeType !== 1) {
+    return false
+  }
+  const children = (node as ParentNode).childNodes
+  if(children.length === 0) {
+    return true
+  }
+  if(children.length !== 1) {
+    return false
+  }
+  return children[0]!.nodeType === 3
+}
+
+/**
+ * Fast path for the common list-row shape: same tag, at most one text child.
+ * Updates text in place without attribute scans or recursive sameShape.
+ */
+const tryPatchPlainText = (current: Node, rendered: Node): boolean => {
+  if(current.nodeType !== 1 || rendered.nodeType !== 1) {
+    return false
+  }
+  const currentEl = current as Element
+  const renderedEl = rendered as Element
+  if(currentEl.tagName !== renderedEl.tagName) {
+    return false
+  }
+  if(!isPlainTextElement(current) || !isPlainTextElement(rendered)) {
+    return false
+  }
+  // Attribute-bearing rows fall through to the general path.
+  if(currentEl.hasAttributes() || renderedEl.hasAttributes()) {
+    return false
+  }
+  const currentText = currentEl.firstChild as Text | null
+  const renderedText = renderedEl.firstChild as Text | null
+  const next = renderedText?.data ?? ""
+  if(currentText === null) {
+    if(next !== "") {
+      currentEl.append(document.createTextNode(next))
+    }
+  } else if(currentText.data !== next) {
+    currentText.data = next
+  }
+  return true
+}
+
 /** Checks if two nodes have the same shape for patching optimization. */
 const sameShape = (oldNode: Node, newNode: Node): boolean => {
-  if(oldNode.nodeType !== newNode.nodeType || (oldNode as Element).tagName?.toLowerCase() !== (newNode as Element).tagName?.toLowerCase()) {
+  if(oldNode.nodeType !== newNode.nodeType) {
     return false
   }
   if(oldNode.nodeType === 3) {
     return true
   }
+  if((oldNode as Element).tagName !== (newNode as Element).tagName) {
+    return false
+  }
   const oldChildren = (oldNode as ParentNode).childNodes
   const newChildren = (newNode as ParentNode).childNodes
-  if(oldChildren === undefined || newChildren === undefined || oldChildren.length !== newChildren.length) {
+  if(oldChildren.length !== newChildren.length) {
     return false
   }
   for(let index = 0; index < oldChildren.length; index++) {
@@ -162,25 +213,31 @@ const sameShape = (oldNode: Node, newNode: Node): boolean => {
 
 const patchInto = (oldNode: Node, newNode: Node): void => {
   if(oldNode.nodeType === 3) {
-    ;(oldNode as Text).data = (newNode as Text).data
+    const next = (newNode as Text).data
+    if((oldNode as Text).data !== next) {
+      ;(oldNode as Text).data = next
+    }
     return
   }
   const element = oldNode as HTMLElement
   const source = newNode as HTMLElement
 
-  for(const name of source.getAttributeNames()) {
-    const value = source.getAttribute(name)
-    if(element.getAttribute(name) !== value) {
-      if(value === null) {
-        element.removeAttribute(name)
-      } else {
-        element.setAttribute(name, value)
+  // Skip attribute churn when neither side has attributes (common list rows).
+  if(source.hasAttributes() || element.hasAttributes()) {
+    for(const name of source.getAttributeNames()) {
+      const value = source.getAttribute(name)
+      if(element.getAttribute(name) !== value) {
+        if(value === null) {
+          element.removeAttribute(name)
+        } else {
+          element.setAttribute(name, value)
+        }
       }
     }
-  }
-  for(const name of element.getAttributeNames()) {
-    if(source.getAttribute(name) === null) {
-      element.removeAttribute(name)
+    for(const name of element.getAttributeNames()) {
+      if(source.getAttribute(name) === null) {
+        element.removeAttribute(name)
+      }
     }
   }
 
@@ -198,9 +255,12 @@ const patchInto = (oldNode: Node, newNode: Node): void => {
  */
 const tryPatchRow = (currentNode: Node, rendered: Node, currentPatchable?: boolean): boolean => {
   try {
-    // Prefer the cached flag for the live node; still scan the fresh tree once.
     if(currentPatchable === false || (currentPatchable === undefined && hasBoundSubtree(currentNode))) {
       return false
+    }
+    // Cheap path for <li>text</li>-style rows (relabel benchmark).
+    if(tryPatchPlainText(currentNode, rendered)) {
+      return true
     }
     if(hasBoundSubtree(rendered)) {
       return false

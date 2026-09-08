@@ -95,6 +95,14 @@ export class ShimElement {
     return [...this.attributes.keys()]
   }
 
+  hasAttributes(): boolean {
+    return this.attributes.size > 0
+  }
+
+  get firstChild(): ShimNode | null {
+    return this.childNodes[0] ?? null
+  }
+
   removeAttribute(name: string): void {
     this.attributes.delete(name)
   }
