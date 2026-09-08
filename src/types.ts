@@ -13,6 +13,18 @@ export type Subscriber = () => void
 export type Equals<T> = (before: T, after: T) => boolean
 
 // TODO: support template literals / functions as children
+
+/**
+ * SSR tree nodes ({@link import("./server/element.ts").ServerRaw},
+ * {@link import("./server/element.ts").ServerElement}, …).
+ * Structural on `serialize()` so the client entry does not need a value
+ * import from the server module, while `new ServerRaw(html)` remains a valid
+ * {@link Child}.
+ */
+export type ServerChild = {
+  serialize(): string
+}
+
 export type Child =
   | Node
   | Signal<any>
@@ -22,6 +34,7 @@ export type Child =
   | null
   | undefined
   | ReadonlyArray<Child>
+  | ServerChild
 export type Children = Array<Child>
 
 type CustomProperties = { [K: `--${string}`]: string }
