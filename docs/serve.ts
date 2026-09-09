@@ -6,6 +6,12 @@ import { renderDocument } from "./layout.ts"
 import { highlight } from "./highlight.ts"
 import { renderMarkdown } from "./markdown.ts"
 
+/** Accept `/page`, `/page.html`, `/index.html`, and chunk names with `.json`. */
+const normalizePageSlug = (raw: string) => {
+  const trimmed = raw.replace(/^\//, "").replace(/\.html$/i, "").replace(/\.json$/i, "")
+  return trimmed === "" ? "index" : trimmed
+}
+
 const readPage = async (slug: string) => {
   const markdown = await readFile(new URL(`./src/pages/${slug}.md`, import.meta.url), "utf8")
   return {
@@ -37,31 +43,40 @@ app.get("/styles.css", async () => new Response(
 ))
 
 // page chunks + documents + shell
-app.get("/chunks/:slug", async (context) => {
-  if (!context.params.slug)
-    return context.json({ error: "wtf" }, 400)
+const htmlPage = async (slug: string) => {
   try {
-    return context.json(await readPage(context.params.slug))
+    return new Response(renderDocument(await readPage(slug)), {
+      headers: { "content-type": "text/html; charset=utf-8" },
+    })
+  } catch {
+    return new Response("not found", {
+      status: 404,
+      headers: { "content-type": "text/html; charset=utf-8" },
+    })
+  }
+}
+
+app.get("/chunks/:slug", async (context) => {
+  const raw = context.params.slug
+  if(!raw) {
+    return context.json({ error: "missing slug" }, 400)
+  }
+  try {
+    return context.json(await readPage(normalizePageSlug(raw)))
   } catch {
     return context.json({ error: "not found" }, 404)
   }
 })
 
-app.get("/", async () => {
-  const page = await readPage("index")
-  return new Response(renderDocument(page), {
-    headers: { "content-type": "text/html; charset=utf-8" },
-  })
-})
+app.get("/", async () => htmlPage("index"))
+app.get("/index.html", async () => htmlPage("index"))
 
 app.get("/:slug", async (context) => {
-  if (!context.params.slug)
-    return context.json({ error: "wtf" }, 400)
-  try {
-    return context.html(renderDocument(await readPage(context.params.slug)))
-  } catch {
-    return context.html("not found", 404)
+  const raw = context.params.slug
+  if(!raw) {
+    return context.json({ error: "missing slug" }, 400)
   }
+  return htmlPage(normalizePageSlug(raw))
 })
 
 app.listen(4173, () => {

@@ -58,13 +58,22 @@ check(
   contentAtBoot.length > 20,
 )
 
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
 const clickNav = async (slug) => {
   const link = [...document.querySelectorAll("[data-nav]")].find((a) => a.dataset.nav === slug)
   if(!link) {
     throw new Error(`nav link missing: ${slug}`)
   }
-  link.dispatchEvent(new window.MouseEvent("click", { bubbles: true, cancelable: true }))
-  await new Promise((resolve) => setTimeout(resolve, 100))
+  // Primary button explicitly set so environments that default button to undefined still pass.
+  link.dispatchEvent(new window.MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }))
+  for(let attempt = 0; attempt < 30; attempt++) {
+    await delay(50)
+    const active = document.querySelector(`[data-nav="${slug}"].active`)
+    if(active) {
+      return
+    }
+  }
 }
 
 await clickNav("getting-started")
@@ -80,8 +89,8 @@ check(
   "hover prefetches only the hovered page",
   chunkFetches().filter((path) => path.includes("styling")).length === 1,
 )
-stylingLink.dispatchEvent(new window.MouseEvent("click", { bubbles: true, cancelable: true }))
-await new Promise((resolve) => setTimeout(resolve, 100))
+stylingLink.dispatchEvent(new window.MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }))
+await delay(150)
 check(
   "prefetched navigation swaps content",
   document.getElementById("content").textContent.includes("css()"),
