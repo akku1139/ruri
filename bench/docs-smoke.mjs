@@ -32,7 +32,8 @@ process.on("uncaughtException", (error) => {
 process.on("unhandledRejection", (error) => {
   console.error("unhandledRejection", error)
   process.exitCode = 1
-})window.document.write(indexHtml)
+})
+window.document.write(indexHtml)
 
 await import(new URL("../docs/dist/client.js", import.meta.url))
 await new Promise((resolve) => setTimeout(resolve, 50))
