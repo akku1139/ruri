@@ -6,7 +6,7 @@ import { readFile } from "node:fs/promises"
 const DOCS_DIST = new URL("../docs/dist/", import.meta.url)
 
 const window = new Window({ url: "http://localhost:4173/index.html" })
-for(const key of ["window", "document", "Node", "Element", "HTMLElement", "SVGElement", "Text", "Comment", "DOMParser", "MouseEvent", "getComputedStyle", "requestAnimationFrame", "history", "location"]) {
+for(const key of ["window", "document", "Node", "Element", "HTMLElement", "HTMLAnchorElement", "SVGElement", "Text", "Comment", "DOMParser", "MouseEvent", "getComputedStyle", "requestAnimationFrame", "history", "location"]) {
   try { globalThis[key] = window[key] } catch {}
 }
 const fetchedPaths = []
@@ -25,9 +25,14 @@ globalThis.fetch = async (input) => {
 }
 
 const indexHtml = await readFile(new URL("index.html", DOCS_DIST), "utf8")
-process.on("uncaughtException", () => {})
-process.on("unhandledRejection", () => {})
-window.document.write(indexHtml)
+process.on("uncaughtException", (error) => {
+  console.error("uncaughtException", error)
+  process.exitCode = 1
+})
+process.on("unhandledRejection", (error) => {
+  console.error("unhandledRejection", error)
+  process.exitCode = 1
+})window.document.write(indexHtml)
 
 await import(new URL("../docs/dist/client.js", import.meta.url))
 await new Promise((resolve) => setTimeout(resolve, 50))
