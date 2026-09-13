@@ -451,14 +451,20 @@ const createRow = <T>(
   })
 
   row.update = (nextItem: T, nextIndex: number): void => {
-    if(usesIndex) {
+    // Avoid double render when both item and index change: set the item first,
+    // then write the index signal so its synchronous notify runs the effect once
+    // with the new item. If only the item changes, run the effect explicitly.
+    const itemChanged = !Object.is(currentItem, nextItem)
+    const indexChanged = usesIndex && !Object.is(indexRef.peek(), nextIndex)
+    if(itemChanged) {
+      currentItem = nextItem
+    }
+    if(indexChanged) {
       indexRef.value = nextIndex
     }
-    if(Object.is(currentItem, nextItem)) {
-      return
+    if(itemChanged && !indexChanged) {
+      handle.run()
     }
-    currentItem = nextItem
-    handle.run()
   }
 
   row.dispose = (): void => {
@@ -527,6 +533,15 @@ const reconcile = <T>(anchor: Comment, controller: EachController<T>): void => {
 
   const middleOldLen = oldRows.length - prefix - suffix
   const middleNewLen = nextItems.length - prefix - suffix
+
+  // Same length, same key order for every row (e.g. relabel / field patch).
+  // No structural work — just push updated items into existing rows.
+  if(prefix === oldRows.length && prefix === nextItems.length) {
+    for(let index = 0; index < oldRows.length; index++) {
+      oldRows[index]!.update(nextItems[index] as T, index)
+    }
+    return
+  }
 
   // --- Fast paths for pure tail mutations (no middle shuffle) ---------------
   // Append-only: shared full prefix, nothing to remove.
