@@ -6,7 +6,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/akku1139/ruri.git"
+    "url": "git+https://github.com/akku1139/ruri.git"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org"

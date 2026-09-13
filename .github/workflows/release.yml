@@ -29,4 +29,6 @@ jobs:
           pnpm build
 
       - name: Publish to npm (Trusted Publisher)
-        run: npm publish --access public --provenance
+        run: |
+          pnpm i -g npm
+          npm publish --access public --provenance
