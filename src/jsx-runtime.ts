@@ -30,11 +30,11 @@ const normalizeChildren = (children: unknown): Children => {
   return (Array.isArray(children) ? children : [children]) as Children
 }
 
-export function jsx(
+export const jsx = (
   type: string | typeof Fragment,
   props: (Record<string, unknown> & JSXChildProp) | null,
   _key?: Key,
-): Node {
+): Node => {
   const rest = { ...(props ?? {}) }
   const children = normalizeChildren(rest.children)
   delete rest.children

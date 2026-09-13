@@ -332,12 +332,12 @@ const ssrSignal = <T>(value: T): Signal<T> => {
   return box as unknown as Signal<T>
 }
 
-function createRow<T>(
+const createRow = <T>(
   controller: EachController<T>,
   item: T,
   index: number,
   options: { serverMode?: boolean; anchor?: Comment; initialNode?: Node },
-): Row<T> {
+): Row<T> => {
   if(options.serverMode) {
     // SSR rows are never reconciled; skip real Signals and effects entirely.
     const source = ssrSignal(item)

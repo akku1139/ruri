@@ -11,7 +11,7 @@ export const ROWS = Array.from({ length: 1000 }, (_, index) => ({
  * Measures fn over warmup + iterations and returns statistics in milliseconds.
  * Async functions are awaited per iteration.
  */
-export async function measure(fn, { warmup = 3, iterations = 15 } = {}) {
+export const measure = async (fn, { warmup = 3, iterations = 15 } = {}) => {
   for(let index = 0; index < warmup; index++) {
     await fn()
   }
@@ -35,13 +35,13 @@ export async function measure(fn, { warmup = 3, iterations = 15 } = {}) {
 const round = (value) => Math.round(value * 1000) / 1000
 
 /** Emits results as a single RESULT line so the runner can parse stdout safely. */
-export function emit(suite, unit, entries) {
+export const emit = (suite, unit, entries) => {
   const payload = entries.map(([framework, stats]) => ({ framework, unit, ...stats }))
   console.log("RESULT " + JSON.stringify({ suite, results: payload }))
 }
 
 /** Runs [framework, fn] pairs sequentially and emits measured stats. */
-export async function runSuite(suite, unit, pairs, options) {
+export const runSuite = async (suite, unit, pairs, options) => {
   const entries = []
   for(const [framework, fn] of pairs) {
     const stats = await measure(fn, options)

@@ -235,10 +235,10 @@ export const appendChildren = (parent: Node & ParentNode, children: Children, st
   }
 }
 
-function applyProps(
+const applyProps = (
   element: AnyElement,
   props: Record<string, unknown>,
-): void {
+): void => {
   for(const name in props) {
     const value = props[name]
     if(value === undefined) {

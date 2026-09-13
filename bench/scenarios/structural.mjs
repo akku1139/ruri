@@ -142,7 +142,7 @@ const CONTROLLERS = [
   ["vue", vueController],
 ]
 
-async function benchOperation(name, mutate, controllers, { warmup = 3, iterations = 15 } = {}) {
+const benchOperation = async (name, mutate, controllers, { warmup = 3, iterations = 15 } = {}) => {
   const results = []
   for(const [framework, create] of controllers) {
     try {
