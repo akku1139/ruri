@@ -3,7 +3,7 @@ import { renderToString, ServerRaw } from "../src/server/index.ts"
 import { tags } from "../src/index.ts"
 import { slugify } from "./markdown.ts"
 
-const { a, aside, body, div, footer, head, html, main, meta, nav, span, link, script, title: titleTag } = tags
+const { a, aside, body, button, div, footer, head, html, main, meta, nav, span, link, script, title: titleTag } = tags
 
 const IMPORT_MAP = JSON.stringify({
   imports: {
@@ -25,7 +25,7 @@ export const PAGES = [
 export const chunkPath = (slug: string) => `chunks/${slug}.json`
 
 const sidebar = (activeSlug: string) =>
-  div({ class: "sidebar" },
+  div({ class: "sidebar", id: "sidebar" },
     a({ class: "brand", href: "index.html" }, "ruri"),
     nav({ class: "nav" },
       PAGES.map((page) =>
@@ -63,6 +63,18 @@ const documentHtml = (
         link({ rel: "stylesheet", href: "styles.css" }),
       ),
       body({},
+        div({ class: "topbar" },
+          a({ class: "topbar-brand", href: "index.html", "data-page": "index" }, "ruri"),
+          button({
+            type: "button",
+            class: "menu-btn",
+            id: "menu-btn",
+            "aria-label": "Open navigation",
+            "aria-controls": "sidebar",
+            "aria-expanded": "false",
+          }, span({ class: "menu-btn-icon", "aria-hidden": "true" })),
+        ),
+        div({ class: "nav-backdrop", id: "nav-backdrop", "aria-hidden": "true" }),
         div({ class: "layout" },
           sidebar(activeSlug),
           main({ class: "main" },

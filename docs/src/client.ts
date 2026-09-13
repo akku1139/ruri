@@ -183,6 +183,39 @@ export const loadPlaygrounds = (root: ParentNode = document) => {
   }
 }
 
+// --- mobile nav drawer ------------------------------------------------------
+
+const setNavOpen = (open: boolean) => {
+  document.body.classList.toggle("nav-open", open)
+  const btn = document.getElementById("menu-btn")
+  if(btn) {
+    btn.setAttribute("aria-expanded", open ? "true" : "false")
+    btn.setAttribute("aria-label", open ? "Close navigation" : "Open navigation")
+  }
+}
+
+document.getElementById("menu-btn")?.addEventListener("click", () => {
+  setNavOpen(!document.body.classList.contains("nav-open"))
+})
+document.getElementById("nav-backdrop")?.addEventListener("click", () => {
+  setNavOpen(false)
+})
+document.addEventListener("keydown", (event) => {
+  if(event.key === "Escape") {
+    setNavOpen(false)
+  }
+})
+// Close the drawer after choosing a nav link.
+document.addEventListener("click", (event) => {
+  const target = event.target
+  if(!(target instanceof Element)) {
+    return
+  }
+  if(target.closest("a[data-page], a[data-nav]")) {
+    setNavOpen(false)
+  }
+})
+
 // --- boot -------------------------------------------------------------------
 
 annotatePageLinks(document)
