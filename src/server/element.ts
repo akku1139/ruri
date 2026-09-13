@@ -99,27 +99,30 @@ export class ServerElement {
     yield `</${this.tagName}>`
   }
 
-  serialize(): string {
-    const open = `<${this.tagName}${this.serializeAttributes()}>`
+  /**
+   * Appends this node's HTML into `out` without intermediate subtree strings.
+   */
+  serializeInto(out: Array<string>): void {
+    out.push(`<${this.tagName}${this.serializeAttributes()}>`)
     if(VOID_ELEMENTS.has(this.tagName)) {
-      return open
+      return
     }
-    const children = this.childNodes
-    if(children.length === 0) {
-      return `${open}</${this.tagName}>`
-    }
-    // Array join beats repeated string += for wide trees (1000-row tables).
-    const parts: Array<string> = [open]
     const isRawText = RAW_TEXT_ELEMENTS.has(this.tagName)
+    const children = this.childNodes
     for(let index = 0; index < children.length; index++) {
       const child = children[index]!
-      parts.push(
-        typeof child === "string"
-            ? (isRawText ? child : escapeHTML(child))
-            : child.serialize(),
-      )
+      if(typeof child === "string") {
+        out.push(isRawText ? child : escapeHTML(child))
+      } else {
+        child.serializeInto(out)
+      }
     }
-    parts.push(`</${this.tagName}>`)
+    out.push(`</${this.tagName}>`)
+  }
+
+  serialize(): string {
+    const parts: Array<string> = []
+    this.serializeInto(parts)
     return parts.join("")
   }
 }
@@ -129,6 +132,10 @@ export class ServerComment {
 
   constructor(data: string) {
     this.data = data
+  }
+
+  serializeInto(out: Array<string>): void {
+    out.push(`<!--${this.data}-->`)
   }
 
   serialize(): string {
@@ -146,6 +153,10 @@ export class ServerRaw {
 
   constructor(html: string) {
     this.html = html
+  }
+
+  serializeInto(out: Array<string>): void {
+    out.push(this.html)
   }
 
   serialize(): string {
@@ -168,20 +179,21 @@ export class ServerFragment {
     this.childNodes.push(...children)
   }
 
-  serialize(): string {
+  serializeInto(out: Array<string>): void {
     const children = this.childNodes
-    if(children.length === 0) {
-      return ""
-    }
-    if(children.length === 1) {
-      const child = children[0]!
-      return typeof child === "string" ? escapeHTML(child) : child.serialize()
-    }
-    const parts: Array<string> = []
     for(let index = 0; index < children.length; index++) {
       const child = children[index]!
-      parts.push(typeof child === "string" ? escapeHTML(child) : child.serialize())
+      if(typeof child === "string") {
+        out.push(escapeHTML(child))
+      } else {
+        child.serializeInto(out)
+      }
     }
+  }
+
+  serialize(): string {
+    const parts: Array<string> = []
+    this.serializeInto(parts)
     return parts.join("")
   }
 

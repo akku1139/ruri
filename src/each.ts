@@ -1,5 +1,5 @@
 import { hydrationState } from "./internal/hydrationState.ts"
-import { Signal, effect } from "./signal.ts"
+import { Signal, createEffect, type ReactiveHandle } from "./signal.ts"
 import { ServerFragment } from "./server/element.ts"
 import type { Child } from "./types.ts"
 import { registerCleanup, runCleanupsFor } from "./utils/cleanup.ts"
@@ -29,7 +29,7 @@ export interface EachController<T> {
 
 /**
  * Shared stand-in for rows whose template never reads index. reconcile still
- * assigns `row.index.value = n`; those writes are no-ops.
+ * receives `update(_, n)` index writes; those are no-ops.
  */
 const NOOP_INDEX = {
   get value(): number {
@@ -50,13 +50,13 @@ interface Row<T> {
   readonly key: unknown
   node: Node
   readonly index: Signal<number>
-  /** The latest item for this key; replacing it re-renders only this row. */
-  readonly source: Signal<T>
   /**
    * True when the current row root has no event/signal bindings in its
    * subtree. Cached at create/replace time so tryPatchRow avoids DFS.
    */
   patchable: boolean
+  /** Apply a new item / index; no-ops when both are unchanged. */
+  update(item: T, index: number): void
   dispose(): void
 }
 
@@ -340,20 +340,21 @@ const createRow = <T>(
 ): Row<T> => {
   if(options.serverMode) {
     // SSR rows are never reconciled; skip real Signals and effects entirely.
-    const source = ssrSignal(item)
     const indexSignal = ssrSignal(index)
     const staticNode = renderRow(controller.render, item, indexSignal, true) as Node
     return {
       key: keyOf(controller, item),
       node: staticNode,
       index: indexSignal,
-      source,
       patchable: true,
+      update: (): void => {},
       dispose: (): void => {},
     }
   }
 
-  const source = new Signal<T>(item)
+  // Row item lives as a closed-over binding — not a Signal. The list controller
+  // is the only writer; external code never observes per-row item signals.
+  let currentItem = item
   // Solid-style: only allocate index plumbing when render.length > 1.
   const usesIndex = controller.usesIndex
   let indexRef: Signal<number> = NOOP_INDEX
@@ -405,16 +406,14 @@ const createRow = <T>(
       node = value
     },
     index: indexRef,
-    source,
     patchable,
+    update: (): void => {},
     dispose: (): void => {},
   }
 
-  // Fine-grained: the effect re-runs only when signals read during render
-  // change. Index reads inside a nested effect() do not re-render the row
-  // template; index embedded in the template DOM does (tracked here).
-  const disposeEffect = effect((): void => {
-    const currentItem = source.value
+  // Fine-grained: the effect re-runs when signals read during render change,
+  // or when update() replaces the item and calls handle.run().
+  const handle: ReactiveHandle = createEffect((): void => {
     const boundBefore = takeBoundGeneration()
     const rendered = renderRow(controller.render, currentItem, indexRef, false) as Node
     const renderedPatchable = takeBoundGeneration() === boundBefore
@@ -451,46 +450,24 @@ const createRow = <T>(
     }
   })
 
+  row.update = (nextItem: T, nextIndex: number): void => {
+    if(usesIndex) {
+      indexRef.value = nextIndex
+    }
+    if(Object.is(currentItem, nextItem)) {
+      return
+    }
+    currentItem = nextItem
+    handle.run()
+  }
+
   row.dispose = (): void => {
-    disposeEffect()
+    handle.dispose()
     if(node !== null) {
       runCleanupsFor(node)
     }
   }
   return row
-}
-
-/**
- * Positions (indices into the given sequence) that belong to the longest
- * increasing subsequence - those rows do not need to move.
- */
-const longestIncreasingSubsequence = (values: Array<number>): Set<number> => {
-  const previous = new Int32Array(values.length).fill(-1)
-  const tails: Array<number> = []
-  const tailValues: Array<number> = []
-  for(let index = 0; index < values.length; index++) {
-    const value = values[index]!
-    let low = 0
-    let high = tailValues.length
-    while(low < high) {
-      const middle = (low + high) >> 1
-      if(tailValues[middle]! < value) {
-        low = middle + 1
-      } else {
-        high = middle
-      }
-    }
-    if(low > 0) {
-      previous[index] = tails[low - 1]!
-    }
-    tails[low] = index
-    tailValues[low] = value
-  }
-  const keep = new Set<number>()
-  for(let index = tails[tailValues.length - 1]!; index >= 0; index = previous[index]!) {
-    keep.add(index)
-  }
-  return keep
 }
 
 const reconcile = <T>(anchor: Comment, controller: EachController<T>): void => {
@@ -537,8 +514,7 @@ const reconcile = <T>(anchor: Comment, controller: EachController<T>): void => {
       parent.insertBefore(fragment, boundary)
     }
     for(let index = prefix; index < nextRows.length; index++) {
-      nextRows[index]!.index.value = index
-      nextRows[index]!.source.value = nextItems[index] as T
+      nextRows[index]!.update(nextItems[index] as T, index)
     }
     controller.rows = nextRows
     return
@@ -553,8 +529,7 @@ const reconcile = <T>(anchor: Comment, controller: EachController<T>): void => {
     }
     const nextRows = oldRows.slice(0, prefix)
     for(let index = 0; index < nextRows.length; index++) {
-      nextRows[index]!.index.value = index
-      nextRows[index]!.source.value = nextItems[index] as T
+      nextRows[index]!.update(nextItems[index] as T, index)
     }
     controller.rows = nextRows
     return
@@ -611,10 +586,22 @@ const reconcile = <T>(anchor: Comment, controller: EachController<T>): void => {
   }
 
   // Minimal-move reorder within the middle.
+  // Skip the entire move pass when every reused row is already at its target
+  // position and there are no newly created rows to insert (common CRUD path).
+  let needsMove = false
+  if(parent && middleNextRows.length > 0) {
+    for(let position = 0; position < middleNextRows.length; position++) {
+      if(!reusedFlags[position] || (reusedOldIndices[position] ?? -1) !== position) {
+        needsMove = true
+        break
+      }
+    }
+  }
+
   // Small middles: skip LIS and move every non-identity position (cheaper than
   // allocating LIS structures for 1–2 movers like swap).
   // Large middles: LIS keeps the longest stable sequence in place.
-  if(parent && middleNextRows.length > 0) {
+  if(needsMove && parent && middleNextRows.length > 0) {
     const reusedPositions: Array<number> = []
     const oldIndexSequence: Array<number> = []
     for(let position = 0; position < middleNextRows.length; position++) {
@@ -684,9 +671,7 @@ const reconcile = <T>(anchor: Comment, controller: EachController<T>): void => {
   // Signal setter skips notification when the value is === (same reference),
   // so unchanged items (same object) do not re-render their rows.
   for(let index = 0; index < nextRows.length; index++) {
-    const row = nextRows[index]!
-    row.index.value = index
-    row.source.value = nextItems[index] as T
+    nextRows[index]!.update(nextItems[index] as T, index)
   }
 
   controller.rows = nextRows

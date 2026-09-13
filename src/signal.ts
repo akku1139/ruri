@@ -276,6 +276,29 @@ export const batch = <T>(fn: () => T): T => {
   }
 }
 
+/** Internal handle for effects that must be re-run from outside (e.g. each rows). */
+export type ReactiveHandle = {
+  run(): void
+  dispose(): void
+}
+
+/**
+ * Like {@link effect}, but returns a handle with explicit `run()` so callers can
+ * re-execute without a dependency signal (used by keyed list rows).
+ */
+export const createEffect = (fn: Subscriber): ReactiveHandle => {
+  const effectInstance = new ReactiveEffect(fn)
+  effectInstance.run()
+  return {
+    run: (): void => {
+      effectInstance.run()
+    },
+    dispose: (): void => {
+      effectInstance.dispose()
+    },
+  }
+}
+
 /**
  * Runs `fn` immediately and re-runs it whenever any signal read inside changes.
  * Returns a disposer. Dependencies are re-tracked on every run and stale ones
@@ -286,9 +309,10 @@ export const batch = <T>(fn: () => T): T => {
  * list-building effects must be part of the blueprint for the transplant to match.
  */
 export const effect = (fn: Subscriber): (() => void) => {
-  const effectInstance = new ReactiveEffect(fn)
-  effectInstance.run()
-  return () => effectInstance.dispose()
+  const handle = createEffect(fn)
+  return (): void => {
+    handle.dispose()
+  }
 }
 
 /**
