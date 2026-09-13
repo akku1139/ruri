@@ -470,6 +470,39 @@ const createRow = <T>(
   return row
 }
 
+/**
+ * Positions (indices into the given sequence) that belong to the longest
+ * increasing subsequence - those rows do not need to move.
+ */
+const longestIncreasingSubsequence = (values: Array<number>): Set<number> => {
+  const previous = new Int32Array(values.length).fill(-1)
+  const tails: Array<number> = []
+  const tailValues: Array<number> = []
+  for(let index = 0; index < values.length; index++) {
+    const value = values[index]!
+    let low = 0
+    let high = tailValues.length
+    while(low < high) {
+      const middle = (low + high) >> 1
+      if(tailValues[middle]! < value) {
+        low = middle + 1
+      } else {
+        high = middle
+      }
+    }
+    if(low > 0) {
+      previous[index] = tails[low - 1]!
+    }
+    tails[low] = index
+    tailValues[low] = value
+  }
+  const keep = new Set<number>()
+  for(let index = tails[tailValues.length - 1]!; index >= 0; index = previous[index]!) {
+    keep.add(index)
+  }
+  return keep
+}
+
 const reconcile = <T>(anchor: Comment, controller: EachController<T>): void => {
   const parent = anchor.parentNode
   const nextItems = controller.items.peek()
