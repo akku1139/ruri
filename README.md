@@ -16,6 +16,9 @@ const app = div({},
 document.body.append(app)
 ```
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/akku1139/ruri)
+[![技術者倫理|遵守済み](https://gijutsusharin.li/badge.svg)](https://gijutsusharin.li)
+
 ## Features
 
 - **Signals** — fine-grained reactivity (`Signal`, `effect`, `derived`, `batch`, `untrack`, `onCleanup`) with automatic dependency tracking and cleanup (no memory leaks).
